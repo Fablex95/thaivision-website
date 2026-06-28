@@ -271,8 +271,8 @@ export default function ContactSection() {
 
               <div className="flex flex-col gap-5">
                 {[
-                  { href: "https://wa.me/66PHONE_PLACEHOLDER", Icon: MessageCircle, label: t("whatsapp"), value: "+66 PHONE_PLACEHOLDER" },
-                  { href: "https://line.me/LINE_PLACEHOLDER", Icon: Phone, label: t("line"), value: "@LINE_PLACEHOLDER" },
+                  { href: "https://wa.me/66842291402", Icon: MessageCircle, label: t("whatsapp"), value: "+66 84 229 1402" },
+                  { href: "https://line.me/ti/p/~thaivisionagency", Icon: Phone, label: t("line"), value: "@thaivisionagency" },
                   { href: "mailto:hello@thaivision.co", Icon: Mail, label: t("email"), value: "hello@thaivision.co" },
                 ].map(({ href, Icon, label, value }) => (
                   <motion.a
