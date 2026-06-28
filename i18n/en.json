@@ -1,0 +1,96 @@
+{
+  "nav": {
+    "services": "Services",
+    "howItWorks": "How It Works",
+    "about": "About",
+    "contact": "Contact",
+    "getStarted": "Get Started"
+  },
+  "hero": {
+    "headline": "Your Business Is Losing Customers Right Now.",
+    "headlineTh": "ธุรกิจของคุณกำลังสูญเสียลูกค้า ทุกนาทีนี้",
+    "sub": "While you read this, your competitors are being found on Google. You're not.",
+    "cta": "Start Your Transformation →",
+    "ctaSecondary": "See Our Work ↓"
+  },
+  "pain": {
+    "headline": "What Is Invisibility Costing You?",
+    "headlineTh": "ความไม่มีตัวตนออนไลน์ทำให้คุณสูญเสียเท่าไร?",
+    "sub": "Every day without a digital presence is revenue walking out the door.",
+    "card1Title": "No Website",
+    "card1Text": "73% of Thai customers Google a business before visiting. If you're not online, you don't exist.",
+    "card2Title": "No SEO",
+    "card2Text": "Page 2 on Google gets less than 1% of clicks. You're paying rent while competitors get all the traffic.",
+    "card3Title": "No Marketing",
+    "card3Text": "Businesses that advertise online grow 3x faster. Word-of-mouth has limits. Digital marketing has none.",
+    "card4Title": "No Automation",
+    "card4Text": "The average SME owner loses 3-4 hours daily on manual tasks. Time is your scarcest resource."
+  },
+  "services": {
+    "headline": "Everything You Need to Dominate Your Market",
+    "headlineTh": "ทุกอย่างที่คุณต้องการเพื่อครองตลาด",
+    "sub": "Six integrated service pillars — built to work together for maximum impact.",
+    "learnMore": "Learn More →",
+    "s1Name": "Digital Presence",
+    "s1Desc": "Stunning websites, local SEO, Google Business optimization & brand identity that makes you unforgettable.",
+    "s2Name": "Marketing & Growth",
+    "s2Desc": "Google, Meta & TikTok ads, social media management & content that converts scrollers into customers.",
+    "s3Name": "Business Automation",
+    "s3Desc": "Streamline your workflows, automate follow-ups, CRM setup & eliminate hours of repetitive daily tasks.",
+    "s4Name": "Artificial Intelligence",
+    "s4Desc": "AI chatbots, intelligent assistants & automation that serve your customers 24/7 without human labor.",
+    "s5Name": "Analytics & Intelligence",
+    "s5Desc": "Real-time dashboards, conversion tracking & competitive intelligence to make data-driven decisions.",
+    "s6Name": "Business Consulting",
+    "s6Desc": "Digital transformation strategy, market positioning & implementation roadmap tailored to your goals."
+  },
+  "howItWorks": {
+    "headline": "From Day One to Transformation",
+    "sub": "A proven three-step process that gets you results — fast.",
+    "step1Title": "Analyze",
+    "step1Desc": "We audit your digital presence and competitors in 48 hours. You get a clear picture of your opportunity.",
+    "step2Title": "Build",
+    "step2Desc": "We design, develop and launch your complete solution fast. No delays, no excuses — only results.",
+    "step3Title": "Grow",
+    "step3Desc": "We manage, optimize and scale your results every month. Your success is our ongoing mission."
+  },
+  "stats": {
+    "headline": "Results That Speak for Themselves",
+    "sub": "Numbers don't lie. Neither do our clients.",
+    "stat1Label": "Businesses Transformed",
+    "stat2Label": "Average Revenue Growth",
+    "stat3Label": "Project Start",
+    "stat4Label": "Client Retention",
+    "diff1Title": "AI-Powered",
+    "diff1Desc": "We integrate cutting-edge AI into every solution we build — giving you an unfair advantage.",
+    "diff2Title": "Results-First",
+    "diff2Desc": "We don't sell deliverables. We sell outcomes. If you don't grow, we haven't done our job.",
+    "diff3Title": "Full-Service",
+    "diff3Desc": "One partner for everything digital. No juggling agencies, freelancers or half-solutions."
+  },
+  "contact": {
+    "headline": "Ready to Grow?",
+    "sub": "Tell us about your business. We'll show you the opportunity.",
+    "namePlaceholder": "Your Name",
+    "companyPlaceholder": "Company Name",
+    "emailPlaceholder": "Email Address",
+    "phonePlaceholder": "Phone / WhatsApp",
+    "messagePlaceholder": "Tell us about your business and goals...",
+    "serviceLabel": "Service Interested In",
+    "serviceDefault": "Select a Service",
+    "submit": "Send Message →",
+    "sending": "Sending...",
+    "successTitle": "Message Sent!",
+    "successSub": "We'll contact you within 24 hours.",
+    "errorMsg": "Something went wrong. Please try again.",
+    "orReach": "Or reach us directly",
+    "whatsapp": "WhatsApp",
+    "line": "LINE",
+    "email": "Email"
+  },
+  "footer": {
+    "tagline": "MORE CUSTOMERS. MORE SALES. MORE GROWTH.",
+    "rights": "All rights reserved.",
+    "pattaya": "Pattaya, Thailand"
+  }
+}

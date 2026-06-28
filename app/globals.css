@@ -1,26 +1,92 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-gold: #C9A84C;
+  --color-gold-light: #E8C866;
+  --color-gold-dark: #A88A38;
+  --color-surface: #111111;
+  --color-surface-light: #1A1A1A;
+  --color-silver: #C0C0C0;
+  --color-bg: #0A0A0A;
+  --font-display: "Playfair Display", serif;
+  --font-body: "Inter", sans-serif;
+  --font-thai: "Sarabun", sans-serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+*, *::before, *::after {
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #0A0A0A;
+  color: #F5F5F5;
+  font-family: var(--font-inter, "Inter", sans-serif);
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: #0A0A0A;
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #C9A84C, #A88A38);
+  border-radius: 2px;
+}
+
+/* Font utility classes */
+.font-display {
+  font-family: var(--font-playfair, "Playfair Display", serif);
+}
+.font-thai {
+  font-family: var(--font-sarabun, "Sarabun", sans-serif);
+}
+
+/* Gold text gradient */
+.gold-gradient {
+  background: linear-gradient(135deg, #C9A84C 0%, #E8C866 50%, #A88A38 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glass morphism */
+.glass {
+  background: rgba(17, 17, 17, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Gold pulse animation */
+@keyframes pulse-gold {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0.4); }
+  50% { box-shadow: 0 0 0 14px rgba(201, 168, 76, 0); }
+}
+.pulse-gold {
+  animation: pulse-gold 2s ease-in-out infinite;
+}
+
+/* Float animation for decorative elements */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+/* Selection color */
+::selection {
+  background: rgba(201, 168, 76, 0.25);
+  color: #F5F5F5;
+}
+
+/* Transition duration utility */
+.duration-400 {
+  transition-duration: 400ms;
 }
