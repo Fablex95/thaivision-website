@@ -9,7 +9,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETIFLY }}
       NETLIFY_SITE_ID: 394a6969-1419-4158-a05a-7ca1ad79c8ee
 
     steps:
