@@ -143,7 +143,7 @@ export default function AboutPageContent({ locale }: { locale: string }) {
       </section>
 
       {/* ── MISSION QUOTE ─────────────────────────────── */}
-      <section className="py-24 px-6 relative" style={{ background: "rgba(3,3,3,0.45)", contain: "paint" }}>
+      <section className="py-24 px-6 relative" style={{ background: "rgba(3,3,3,0.55)", contain: "paint" }}>
         <div className="max-w-4xl mx-auto text-center">
           <FadeUp>
             <div
@@ -208,7 +208,7 @@ export default function AboutPageContent({ locale }: { locale: string }) {
       </section>
 
       {/* ── VALUES ────────────────────────────────────── */}
-      <section className="py-24 px-6 relative" style={{ background: "rgba(3,3,3,0.45)", contain: "paint" }}>
+      <section className="py-24 px-6 relative" style={{ background: "rgba(3,3,3,0.55)", contain: "paint" }}>
         <motion.div
           className="absolute top-0 left-1/2 -translate-x-1/2 h-px"
           style={{ background: "linear-gradient(to right, transparent, #C9A84C, transparent)", width: 0 }}
@@ -354,7 +354,7 @@ export default function AboutPageContent({ locale }: { locale: string }) {
       </section>
 
       {/* ── PRINCIPLES ────────────────────────────────── */}
-      <section className="py-24 px-6 relative" style={{ background: "rgba(3,3,3,0.45)", contain: "paint" }}>
+      <section className="py-24 px-6 relative" style={{ background: "rgba(3,3,3,0.55)", contain: "paint" }}>
         <motion.div
           className="absolute top-0 left-1/2 -translate-x-1/2 h-px"
           style={{ background: "linear-gradient(to right, transparent, rgba(201,168,76,0.4), transparent)", width: 0 }}
