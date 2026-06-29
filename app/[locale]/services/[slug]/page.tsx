@@ -6,7 +6,6 @@ import Footer from "@/components/layout/Footer"
 import FloatingWhatsApp from "@/components/ui/FloatingWhatsApp"
 import ScrollProgressBar from "@/components/ui/ScrollProgressBar"
 import CustomCursor from "@/components/ui/CustomCursor"
-import TempleGlowBackground from "@/components/ui/TempleGlowBackground"
 import ServiceDetailPage from "@/components/sections/ServiceDetailPage"
 
 interface Props {
@@ -42,7 +41,6 @@ export default async function ServicePage({ params }: Props) {
 
   return (
     <>
-      <TempleGlowBackground />
       <ScrollProgressBar />
       <CustomCursor />
       <Header />

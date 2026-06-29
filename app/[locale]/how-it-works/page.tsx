@@ -4,7 +4,6 @@ import Footer from "@/components/layout/Footer"
 import FloatingWhatsApp from "@/components/ui/FloatingWhatsApp"
 import ScrollProgressBar from "@/components/ui/ScrollProgressBar"
 import CustomCursor from "@/components/ui/CustomCursor"
-import TempleGlowBackground from "@/components/ui/TempleGlowBackground"
 import HowItWorksPageContent from "@/components/sections/HowItWorksPageContent"
 
 interface Props {
@@ -26,7 +25,6 @@ export default async function HowItWorksPage({ params }: Props) {
   const { locale } = await params
   return (
     <>
-      <TempleGlowBackground />
       <ScrollProgressBar />
       <CustomCursor />
       <Header />

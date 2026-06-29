@@ -18,7 +18,7 @@
 }
 
 html {
-  scroll-behavior: smooth;
+  /* scroll-behavior removed: conflicts with Framer Motion useScroll → causes jank */
 }
 
 body {

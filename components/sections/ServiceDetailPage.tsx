@@ -269,7 +269,7 @@ export default function ServiceDetailPage({
       </section>
 
       {/* ── FEATURES ────────────────────────────────────────── */}
-      <section className="py-24 px-6 relative" style={{ background: "rgba(5,5,5,0.68)" }}>
+      <section className="py-24 px-6 relative" style={{ background: "rgba(3,3,3,0.45)", contain: "paint" }}>
         <motion.div
           className="absolute top-0 left-1/2 -translate-x-1/2 h-px"
           style={{ background: "linear-gradient(to right, transparent, #C9A84C, transparent)", width: 0 }}
@@ -442,7 +442,7 @@ export default function ServiceDetailPage({
       </section>
 
       {/* ── STATS ───────────────────────────────────────────── */}
-      <section className="py-24 px-6 relative" style={{ background: "rgba(5,5,5,0.68)" }}>
+      <section className="py-24 px-6 relative" style={{ background: "rgba(3,3,3,0.45)", contain: "paint" }}>
         <motion.div
           className="absolute top-0 left-1/2 -translate-x-1/2 h-px"
           style={{ background: "linear-gradient(to right, transparent, rgba(201,168,76,0.4), transparent)", width: 0 }}
@@ -529,7 +529,7 @@ export default function ServiceDetailPage({
       </section>
 
       {/* ── CTA BANNER ──────────────────────────────────────── */}
-      <section className="py-24 px-6 relative" style={{ background: "rgba(5,5,5,0.75)" }}>
+      <section className="py-24 px-6 relative" style={{ background: "rgba(3,3,3,0.45)", contain: "paint" }}>
         <motion.div
           className="absolute top-0 left-1/2 -translate-x-1/2 h-px"
           style={{ background: "linear-gradient(to right, transparent, #C9A84C, transparent)", width: 0 }}

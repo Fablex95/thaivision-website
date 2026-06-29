@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Inter, Playfair_Display, Sarabun } from "next/font/google"
 import { NextIntlClientProvider } from "next-intl"
 import { getMessages } from "next-intl/server"
+import TempleGlowBackground from "@/components/ui/TempleGlowBackground"
 import "../globals.css"
 
 const inter = Inter({
@@ -58,6 +59,7 @@ export default async function LocaleLayout({
     >
       <body style={{ fontFamily: "var(--font-inter), sans-serif" }}>
         <NextIntlClientProvider messages={messages}>
+          <TempleGlowBackground />
           {children}
         </NextIntlClientProvider>
       </body>
