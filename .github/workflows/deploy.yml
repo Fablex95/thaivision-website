@@ -25,11 +25,29 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
-        run: npm run build
-
       - name: Install Netlify CLI
         run: npm install -g netlify-cli
 
-      - name: Deploy to Netlify
-        run: netlify deploy --prod --dir=.next --site=$NETLIFY_SITE_ID --auth=$NETLIFY_AUTH_TOKEN
+      - name: Deploy draft to Netlify
+        id: draft_deploy
+        run: |
+          OUTPUT=$(netlify deploy --auth=$NETLIFY_AUTH_TOKEN --site=$NETLIFY_SITE_ID --draft 2>&1)
+          echo "$OUTPUT"
+          DEPLOY_ID=$(echo "$OUTPUT" | grep -oP '(?<=deploys/)[a-f0-9]+' | head -1)
+          echo "deploy_id=$DEPLOY_ID" >> $GITHUB_OUTPUT
+
+      - name: Promote draft to production
+        run: |
+          DEPLOY_ID="${{ steps.draft_deploy.outputs.deploy_id }}"
+          echo "Promoting deploy $DEPLOY_ID to production..."
+          curl -s -X POST "https://api.netlify.com/api/v1/sites/$NETLIFY_SITE_ID/deploys/$DEPLOY_ID/restore" \
+            -H "Authorization: Bearer $NETLIFY_AUTH_TOKEN" \
+            -H "Content-Type: application/json" | python3 -c "
+          import json, sys
+          d = json.load(sys.stdin)
+          print('State:', d.get('state'))
+          print('URL:', d.get('ssl_url'))
+          if d.get('error_message'):
+              print('Error:', d.get('error_message'))
+              exit(1)
+          "
