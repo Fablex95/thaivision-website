@@ -28,8 +28,8 @@ export default function Header() {
 
   const navLinks = [
     { label: t("services"), href: hrefFor("#services") },
-    { label: t("howItWorks"), href: hrefFor("#how-it-works") },
-    { label: t("about"), href: hrefFor("#stats") },
+    { label: t("howItWorks"), href: `/${locale}/how-it-works` },
+    { label: t("about"), href: `/${locale}/about` },
     { label: t("contact"), href: hrefFor("#contact") },
   ]
 
@@ -57,7 +57,7 @@ export default function Header() {
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-8">
           {navLinks.map((link) => (
-            <a
+            <Link
               key={link.href}
               href={link.href}
               className="relative text-sm font-medium no-underline group"
@@ -71,7 +71,7 @@ export default function Header() {
                 className="absolute -bottom-0.5 left-0 h-px w-0 group-hover:w-full transition-all duration-300 ease-out"
                 style={{ background: "linear-gradient(90deg, #C9A84C, #E8C866)" }}
               />
-            </a>
+            </Link>
           ))}
         </nav>
 
@@ -117,7 +117,7 @@ export default function Header() {
         >
           <nav className="flex flex-col gap-4 pt-4 border-t" style={{ borderColor: "rgba(201,168,76,0.1)" }}>
             {navLinks.map((link) => (
-              <a
+              <Link
                 key={link.href}
                 href={link.href}
                 className="text-base font-medium no-underline hover:text-[#C9A84C] transition-colors duration-200"
@@ -125,7 +125,7 @@ export default function Header() {
                 onClick={() => setMenuOpen(false)}
               >
                 {link.label}
-              </a>
+              </Link>
             ))}
             <ShimmerButton href={hrefFor("#contact")} variant="gold" className="mt-2 justify-center" onClick={() => setMenuOpen(false)}>
               {t("getStarted")}

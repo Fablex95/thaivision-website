@@ -305,8 +305,8 @@ export default function ServiceDetailPage({
                     background: "linear-gradient(145deg, #131313 0%, #111111 100%)",
                     border: "1px solid rgba(201,168,76,0.10)",
                   }}
-                  initial={{ opacity: 0, y: 36, filter: "blur(10px)" }}
-                  whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  initial={{ opacity: 0, y: 36 }}
+                  whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-40px" }}
                   transition={{ duration: 0.55, delay: i * 0.1, ease: [0, 0, 0.2, 1] }}
                   whileHover={
@@ -404,8 +404,8 @@ export default function ServiceDetailPage({
                 <motion.div
                   key={i}
                   className="flex flex-col items-center text-center"
-                  initial={{ opacity: 0, y: 40, filter: "blur(10px)" }}
-                  whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  initial={{ opacity: 0, y: 40 }}
+                  whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-40px" }}
                   transition={{ duration: 0.65, delay: i * 0.2 }}
                 >
@@ -476,8 +476,8 @@ export default function ServiceDetailPage({
                   background: "linear-gradient(145deg, #141414 0%, #111111 100%)",
                   border: "1px solid rgba(201,168,76,0.1)",
                 }}
-                initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
-                whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.55, delay: i * 0.12 }}
                 whileHover={
@@ -540,8 +540,8 @@ export default function ServiceDetailPage({
 
         <div className="max-w-3xl mx-auto text-center">
           <motion.div
-            initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
-            whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-50px" }}
             transition={{ duration: 0.65 }}
           >

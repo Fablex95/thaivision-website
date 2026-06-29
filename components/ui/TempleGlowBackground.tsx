@@ -31,7 +31,7 @@ export default function TempleGlowBackground() {
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    const ctx = canvas.getContext("2d")
+    const ctx = canvas.getContext("2d", { alpha: false })
     if (!ctx) return
 
     const resize = () => {
@@ -53,10 +53,10 @@ export default function TempleGlowBackground() {
       phase: Math.random() * Math.PI * 2,
       phaseV: 0.006 + Math.random() * 0.014,
       baseOpacity: 0.15 + Math.random() * 0.55,
-      glow: Math.random() > 0.88,
+      glow: Math.random() > 0.94,
     })
 
-    const particles: Particle[] = Array.from({ length: 75 }, makeParticle)
+    const particles: Particle[] = Array.from({ length: 45 }, makeParticle)
 
     if (prefersReduced) {
       particles.forEach((p) => {
@@ -69,7 +69,8 @@ export default function TempleGlowBackground() {
     }
 
     const tick = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      ctx.fillStyle = "#030303"
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
 
       particles.forEach((p) => {
         p.y -= p.vy
@@ -87,14 +88,15 @@ export default function TempleGlowBackground() {
         const opacity = p.baseOpacity * (0.4 + 0.6 * Math.abs(Math.sin(p.phase)))
 
         if (p.glow) {
-          ctx.shadowBlur = 8
-          ctx.shadowColor = `rgba(201,168,76,${opacity * 0.8})`
+          ctx.beginPath()
+          ctx.arc(p.x, p.y, p.r * 5, 0, Math.PI * 2)
+          ctx.fillStyle = `rgba(201,168,76,${opacity * 0.10})`
+          ctx.fill()
         }
         ctx.beginPath()
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2)
         ctx.fillStyle = `rgba(201,168,76,${opacity})`
         ctx.fill()
-        if (p.glow) ctx.shadowBlur = 0
       })
 
       rafRef.current = requestAnimationFrame(tick)
@@ -187,6 +189,7 @@ export default function TempleGlowBackground() {
                 transparent 100%)`,
               filter: "blur(24px)",
               skewX: -14,
+              willChange: "transform",
             }}
             initial={{ y: "100vh" }}
             animate={{ y: "-270vh" }}
@@ -202,7 +205,7 @@ export default function TempleGlowBackground() {
       {/* Canvas particles — gold dust drifting upward */}
       <canvas
         ref={canvasRef}
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", willChange: "transform", transform: "translateZ(0)" }}
       />
     </div>
   )

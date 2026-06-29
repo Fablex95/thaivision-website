@@ -31,33 +31,31 @@ export default function CustomCursor() {
     const enter = () => setIsVisible(true)
     const leave = () => setIsVisible(false)
 
-    const handleHoverIn = (e: MouseEvent) => {
+    const handlePointerOver = (e: PointerEvent) => {
       const target = e.target as HTMLElement
-      if (
+      const isInteractive =
         target.tagName === "A" ||
         target.tagName === "BUTTON" ||
-        target.closest("a") ||
-        target.closest("button") ||
-        target.style.cursor === "pointer" ||
-        getComputedStyle(target).cursor === "pointer"
-      ) {
-        setIsHovering(true)
-      } else {
-        setIsHovering(false)
-      }
+        target.closest("a") !== null ||
+        target.closest("button") !== null ||
+        target.getAttribute("role") === "button"
+      setIsHovering(isInteractive)
     }
 
+    const handlePointerOut = () => setIsHovering(false)
+
     window.addEventListener("mousemove", move)
-    window.addEventListener("mousemove", handleHoverIn)
+    window.addEventListener("pointerover", handlePointerOver)
+    window.addEventListener("pointerout", handlePointerOut)
     document.addEventListener("mouseenter", enter)
     document.addEventListener("mouseleave", leave)
 
-    // Hide the default cursor
     document.documentElement.style.cursor = "none"
 
     return () => {
       window.removeEventListener("mousemove", move)
-      window.removeEventListener("mousemove", handleHoverIn)
+      window.removeEventListener("pointerover", handlePointerOver)
+      window.removeEventListener("pointerout", handlePointerOut)
       document.removeEventListener("mouseenter", enter)
       document.removeEventListener("mouseleave", leave)
       document.documentElement.style.cursor = ""
