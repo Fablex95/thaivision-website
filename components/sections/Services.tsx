@@ -64,7 +64,7 @@ export default function Services() {
             className="text-xs font-bold uppercase tracking-[0.3em] mb-4 block"
             style={{ color: "#C9A84C" }}
           >
-            Our Services
+            {t("badge")}
           </span>
           <h2 className="font-display text-3xl md:text-5xl font-bold mb-4" style={{ color: "#F5F5F5" }}>
             {t("headline")}

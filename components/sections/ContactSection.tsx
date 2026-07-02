@@ -82,13 +82,14 @@ export default function ContactSection() {
     }
   }
 
-  const services = [
-    "Digital Presence",
-    "Marketing & Growth",
-    "Business Automation",
-    "Artificial Intelligence",
-    "Analytics & Intelligence",
-    "Business Consulting",
+  const tServices = useTranslations("services")
+  const serviceOptions = [
+    { value: "Digital Presence", label: tServices("s1Name") },
+    { value: "Marketing & Growth", label: tServices("s2Name") },
+    { value: "Business Automation", label: tServices("s3Name") },
+    { value: "Artificial Intelligence", label: tServices("s4Name") },
+    { value: "Analytics & Intelligence", label: tServices("s5Name") },
+    { value: "Business Consulting", label: tServices("s6Name") },
   ]
 
   return (
@@ -122,7 +123,7 @@ export default function ContactSection() {
           transition={{ duration: 0.6 }}
         >
           <span className="text-xs font-bold uppercase tracking-[0.3em] mb-4 block" style={{ color: "#C9A84C" }}>
-            Get In Touch
+            {t("badge")}
           </span>
           <h2 className="font-display text-3xl md:text-5xl font-bold mb-4" style={{ color: "#F5F5F5" }}>
             {t("headline")}
@@ -212,8 +213,8 @@ export default function ContactSection() {
                   }}
                 >
                   <option value="">{t("serviceDefault")}</option>
-                  {services.map((s) => (
-                    <option key={s} value={s}>{s}</option>
+                  {serviceOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>
 
@@ -309,9 +310,9 @@ export default function ContactSection() {
             >
               <div className="absolute top-0 left-0 right-0 h-[1px]" style={{ background: "linear-gradient(90deg, #C9A84C, transparent)" }} />
               <div className="text-5xl font-bold font-display mb-3" style={{ color: "rgba(201,168,76,0.12)" }}>24h</div>
-              <h4 className="font-display text-lg font-semibold mb-2" style={{ color: "#F5F5F5" }}>We Respond Fast</h4>
+              <h4 className="font-display text-lg font-semibold mb-2" style={{ color: "#F5F5F5" }}>{t("respondTitle")}</h4>
               <p className="text-sm leading-relaxed" style={{ color: "#8A8A8A" }}>
-                Every inquiry gets a personal response within 24 hours. No bots. No templates. Real people who care.
+                {t("respondDesc")}
               </p>
             </div>
           </motion.div>

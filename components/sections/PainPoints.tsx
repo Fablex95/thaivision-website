@@ -62,7 +62,7 @@ export default function PainPoints() {
             className="text-xs font-bold uppercase tracking-[0.3em] mb-4 block"
             style={{ color: "#C9A84C" }}
           >
-            The Problem
+            {t("badge")}
           </span>
           <h2 className="font-display text-3xl md:text-5xl font-bold mb-4" style={{ color: "#F5F5F5" }}>
             {t("headline")}
@@ -162,9 +162,9 @@ export default function PainPoints() {
           transition={{ duration: 0.6, delay: 0.4 }}
         >
           <p className="text-sm" style={{ color: "#8A8A8A" }}>
-            Sound familiar?{" "}
+            {t("ctaText")}{" "}
             <a href="#services" className="font-semibold no-underline" style={{ color: "#C9A84C" }}>
-              We fix all of this →
+              {t("ctaLink")}
             </a>
           </p>
         </motion.div>

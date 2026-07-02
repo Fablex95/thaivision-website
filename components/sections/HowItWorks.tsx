@@ -75,7 +75,7 @@ export default function HowItWorks() {
             className="text-xs font-bold uppercase tracking-[0.3em] mb-4 block"
             style={{ color: "#C9A84C" }}
           >
-            The Process
+            {t("badge")}
           </span>
           <h2 className="font-display text-3xl md:text-5xl font-bold mb-4" style={{ color: "#F5F5F5" }}>
             {t("headline")}
@@ -168,7 +168,7 @@ export default function HowItWorks() {
           transition={{ duration: 0.6, delay: 0.6 }}
         >
           <ShimmerButton href="#contact" variant="gold" className="text-base px-8 py-4">
-            Start Your 48h Analysis →
+            {t("cta")}
           </ShimmerButton>
         </motion.div>
       </div>

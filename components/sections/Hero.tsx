@@ -164,7 +164,7 @@ export default function Hero() {
             animate={{ opacity: [1, 0.3, 1] }}
             transition={{ duration: 1.5, repeat: Infinity }}
           />
-          AI-First Digital Agency · Pattaya, Thailand
+          {t("badge")}
         </motion.div>
 
         {/* Main Headline */}
@@ -218,7 +218,7 @@ export default function Hero() {
         >
           <div className="h-px flex-1 max-w-[80px]" style={{ background: "rgba(201,168,76,0.2)" }} />
           <span className="text-xs font-bold uppercase tracking-[0.3em]" style={{ color: "#C9A84C" }}>
-            WEBSITES · MARKETING · AUTOMATION
+            {t("tagline")}
           </span>
           <div className="h-px flex-1 max-w-[80px]" style={{ background: "rgba(201,168,76,0.2)" }} />
         </motion.div>
