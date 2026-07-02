@@ -1,0 +1,21 @@
+{
+  "pages": {},
+  "app": {
+    "[project]/app/[locale]/about/page": [
+      "static/media/83afe278b6a6bb3c-s.p.2bn3s6zvc0dyp.woff2",
+      "static/media/2a65768255d6b625-s.p.3u4lli0-axodc.woff2",
+      "static/media/58fcc4ad15255874-s.p.023jaxb4i0-q4.woff2",
+      "static/media/e12efafcac952e69-s.p.3gt1gw19188hm.woff2",
+      "static/media/e9ed0bc71a38d6c1-s.p.2m2jj329378-j.woff2",
+      "static/media/a19976a16d351e92-s.p.41_1bbhnqcn3l.woff2",
+      "static/media/3836391c10060ce4-s.p.2ub5ob4yff_mt.woff2",
+      "static/media/6281857f0573b169-s.p.2ggoighzpvw-e.woff2",
+      "static/media/a0529e96a7862c0d-s.p.3w1e23hf7mhof.woff2",
+      "static/media/22d7e241aeb09639-s.p.33ndw2snxq3le.woff2",
+      "static/media/0bbfe7d70ca362ab-s.p.18qb6f14hcpif.woff2",
+      "static/media/bcc136e7df79ae49-s.p.3vvwmya0_3z_s.woff2"
+    ]
+  },
+  "appUsingSizeAdjust": true,
+  "pagesUsingSizeAdjust": false
+}

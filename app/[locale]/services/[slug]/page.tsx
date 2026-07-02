@@ -20,8 +20,8 @@ export function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params
-  const service = getServiceBySlug(slug)
+  const { locale, slug } = await params
+  const service = getServiceBySlug(slug, locale)
   if (!service) return {}
   return {
     title: `${service.name} | ThaiVision — Digital Agency Pattaya`,
@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ServicePage({ params }: Props) {
   const { locale, slug } = await params
-  const service = getServiceBySlug(slug)
+  const service = getServiceBySlug(slug, locale)
   if (!service) notFound()
 
   return (

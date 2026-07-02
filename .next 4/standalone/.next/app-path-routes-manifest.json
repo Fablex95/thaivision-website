@@ -1,0 +1,12 @@
+{
+  "/[locale]/about/page": "/[locale]/about",
+  "/[locale]/how-it-works/page": "/[locale]/how-it-works",
+  "/[locale]/page": "/[locale]",
+  "/[locale]/services/[slug]/page": "/[locale]/services/[slug]",
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/favicon.ico/route": "/favicon.ico",
+  "/page": "/",
+  "/robots.txt/route": "/robots.txt",
+  "/sitemap.xml/route": "/sitemap.xml"
+}

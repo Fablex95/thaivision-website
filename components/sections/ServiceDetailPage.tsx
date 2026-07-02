@@ -33,6 +33,7 @@ import {
 import Link from "next/link"
 import type { ServiceData } from "@/lib/services-data"
 import ShimmerButton from "@/components/ui/ShimmerButton"
+import { useTranslations } from "next-intl"
 
 const ICON_MAP: Record<string, React.ElementType> = {
   Globe, TrendingUp, Cog, Brain, BarChart2, Lightbulb,
@@ -146,6 +147,7 @@ export default function ServiceDetailPage({
   locale: string
 }) {
   const prefersReduced = useReducedMotion()
+  const t = useTranslations("serviceDetail")
   const MainIcon = getIcon(service.icon)
 
   return (
@@ -171,7 +173,7 @@ export default function ServiceDetailPage({
               <ArrowLeft className="w-4 h-4 transition-colors group-hover:text-[#C9A84C]" />
             </motion.div>
             <span className="text-sm font-medium transition-colors group-hover:text-[#C9A84C]">
-              All Services
+              {t("allServices")}
             </span>
           </Link>
         </motion.div>
@@ -254,7 +256,7 @@ export default function ServiceDetailPage({
               {service.ctaText} →
             </ShimmerButton>
             <ShimmerButton href={`/${locale}#services`} variant="outline" className="text-base px-8 py-4">
-              Explore All Services
+              {t("exploreAllServices")}
             </ShimmerButton>
           </motion.div>
         </div>
@@ -287,10 +289,10 @@ export default function ServiceDetailPage({
             transition={{ duration: 0.6 }}
           >
             <span className="text-xs font-bold uppercase tracking-[0.3em] mb-4 block" style={{ color: "#C9A84C" }}>
-              What We Deliver
+              {t("whatWeDeliver")}
             </span>
             <h2 className="font-display text-3xl md:text-4xl font-bold" style={{ color: "#F5F5F5" }}>
-              Everything Included
+              {t("everythingIncluded")}
             </h2>
           </motion.div>
 
@@ -374,10 +376,10 @@ export default function ServiceDetailPage({
             transition={{ duration: 0.6 }}
           >
             <span className="text-xs font-bold uppercase tracking-[0.3em] mb-4 block" style={{ color: "#C9A84C" }}>
-              How It Works
+              {t("howItWorks")}
             </span>
             <h2 className="font-display text-3xl md:text-4xl font-bold" style={{ color: "#F5F5F5" }}>
-              From Zero to Results
+              {t("fromZeroToResults")}
             </h2>
           </motion.div>
 
@@ -460,10 +462,10 @@ export default function ServiceDetailPage({
             transition={{ duration: 0.6 }}
           >
             <span className="text-xs font-bold uppercase tracking-[0.3em] mb-4 block" style={{ color: "#C9A84C" }}>
-              Proven Results
+              {t("provenResults")}
             </span>
             <h2 className="font-display text-3xl md:text-4xl font-bold" style={{ color: "#F5F5F5" }}>
-              Numbers That Matter
+              {t("numbersThatMatter")}
             </h2>
           </motion.div>
 
@@ -513,10 +515,10 @@ export default function ServiceDetailPage({
             transition={{ duration: 0.6 }}
           >
             <span className="text-xs font-bold uppercase tracking-[0.3em] mb-4 block" style={{ color: "#C9A84C" }}>
-              Common Questions
+              {t("commonQuestions")}
             </span>
             <h2 className="font-display text-3xl md:text-4xl font-bold" style={{ color: "#F5F5F5" }}>
-              Everything You Need to Know
+              {t("everythingYouNeedToKnow")}
             </h2>
           </motion.div>
 
@@ -547,7 +549,7 @@ export default function ServiceDetailPage({
           >
             {/* Gold check list */}
             <div className="flex flex-wrap justify-center gap-4 mb-10">
-              {["No long-term contracts", "Results in 30 days", "Personal Thai support"].map((item, i) => (
+              {[t("cta1"), t("cta2"), t("cta3")].map((item, i) => (
                 <motion.span
                   key={i}
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium"
@@ -571,12 +573,12 @@ export default function ServiceDetailPage({
               {service.ctaText}
             </h2>
             <p className="text-lg mb-10 max-w-xl mx-auto" style={{ color: "#8A8A8A" }}>
-              Tell us about your business. We respond within 24 hours — no bots, no templates.
+              {t("ctaSub")}
             </p>
 
             <div className="flex flex-wrap gap-4 justify-center">
               <ShimmerButton href={`/${locale}#contact`} variant="gold" className="text-base px-10 py-5">
-                Get a Free Consultation →
+                {t("getConsultation")}
               </ShimmerButton>
             </div>
           </motion.div>

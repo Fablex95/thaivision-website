@@ -3,55 +3,12 @@
 import { useRef } from "react"
 import { motion, useInView, useReducedMotion } from "motion/react"
 import { Heart, Zap, Target, Shield, Users, TrendingUp, ArrowRight } from "lucide-react"
-import Link from "next/link"
 import Image from "next/image"
 import ShimmerButton from "@/components/ui/ShimmerButton"
+import { useTranslations } from "next-intl"
 
-const STATS = [
-  { value: "6", label: "Core Services" },
-  { value: "24/7", label: "AI-Powered Support" },
-  { value: "48h", label: "Avg. Launch Time" },
-  { value: "100%", label: "Client Satisfaction" },
-]
-
-const VALUES = [
-  {
-    icon: Target,
-    title: "Results First",
-    description:
-      "We measure success by your revenue and growth — not by hours billed or deliverables shipped. Every strategy we build starts with your business outcome.",
-  },
-  {
-    icon: Zap,
-    title: "AI-Powered Efficiency",
-    description:
-      "We embed AI at every layer of your digital presence — from content creation to customer response. You get enterprise tools at SME prices.",
-  },
-  {
-    icon: Heart,
-    title: "Real Relationships",
-    description:
-      "We're based in Pattaya, Thailand. Your point of contact speaks your language, understands your market, and picks up the phone when it matters.",
-  },
-]
-
-const PRINCIPLES = [
-  {
-    icon: Shield,
-    title: "No lock-in contracts",
-    description: "We earn your business every month, not just at signing.",
-  },
-  {
-    icon: Users,
-    title: "One team, full ownership",
-    description: "No freelancer patchwork — a coordinated team owns your entire digital stack.",
-  },
-  {
-    icon: TrendingUp,
-    title: "Continuous improvement",
-    description: "We review, refine and report — not just deliver and disappear.",
-  },
-]
+const VALUE_ICONS = [Target, Zap, Heart]
+const PRINCIPLE_ICONS = [Shield, Users, TrendingUp]
 
 function FadeUp({
   children,
@@ -81,6 +38,20 @@ function FadeUp({
 
 export default function AboutPageContent({ locale }: { locale: string }) {
   const prefersReduced = useReducedMotion()
+  const t = useTranslations("about")
+
+  const statItems = [
+    { value: t("stat1Value"), label: t("stat1Label") },
+    { value: t("stat2Value"), label: t("stat2Label") },
+    { value: t("stat3Value"), label: t("stat3Label") },
+    { value: t("stat4Value"), label: t("stat4Label") },
+  ]
+
+  const valueTitles = [t("value1Title"), t("value2Title"), t("value3Title")]
+  const valueDescs = [t("value1Desc"), t("value2Desc"), t("value3Desc")]
+
+  const principleTitles = [t("principle1Title"), t("principle2Title"), t("principle3Title")]
+  const principleDescs = [t("principle1Desc"), t("principle2Desc"), t("principle3Desc")]
 
   return (
     <main style={{ position: "relative", zIndex: 1 }}>
@@ -94,7 +65,7 @@ export default function AboutPageContent({ locale }: { locale: string }) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
-            About Us
+            {t("badge")}
           </motion.span>
 
           <motion.h1
@@ -104,10 +75,9 @@ export default function AboutPageContent({ locale }: { locale: string }) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.3 }}
           >
-            The{" "}
+            {t("heroLine1")}{" "}
             <span style={{ color: "#C9A84C" }}>ThaiVision</span>
-            <br />
-            Team
+            {t("heroLine2") ? <><br />{t("heroLine2")}</> : null}
           </motion.h1>
 
           <motion.p
@@ -117,9 +87,7 @@ export default function AboutPageContent({ locale }: { locale: string }) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.45 }}
           >
-            We are a digital agency born in Thailand, built for Thailand. Our mission is simple:
-            help local businesses compete in the digital era — with real strategies, real tools,
-            and real results.
+            {t("heroSub")}
           </motion.p>
 
           <motion.div
@@ -128,12 +96,11 @@ export default function AboutPageContent({ locale }: { locale: string }) {
             transition={{ duration: 0.5, delay: 0.6 }}
           >
             <ShimmerButton href={`/${locale}#contact`} variant="gold" className="text-base px-8 py-4">
-              Work With Us →
+              {t("heroCta")}
             </ShimmerButton>
           </motion.div>
         </div>
 
-        {/* Decorative line */}
         <motion.div
           className="absolute bottom-0 left-1/2 -translate-x-1/2 h-px"
           style={{ background: "linear-gradient(to right, transparent, rgba(201,168,76,0.4), transparent)", width: 0 }}
@@ -157,12 +124,12 @@ export default function AboutPageContent({ locale }: { locale: string }) {
               className="font-display text-2xl md:text-3xl lg:text-4xl font-semibold leading-snug mb-8"
               style={{ color: "#F5F5F5" }}
             >
-              Every Thai business deserves a world-class digital presence.
+              {t("quote")}
               <br />
-              <span style={{ color: "#C9A84C" }}>We make that possible.</span>
+              <span style={{ color: "#C9A84C" }}>{t("quoteHighlight")}</span>
             </p>
             <p className="text-sm uppercase tracking-widest font-semibold" style={{ color: "#8A8A8A" }}>
-              — ThaiVision, Pattaya
+              {t("quoteAttribution")}
             </p>
           </FadeUp>
         </div>
@@ -172,7 +139,7 @@ export default function AboutPageContent({ locale }: { locale: string }) {
       <section className="py-24 px-6 relative">
         <div className="max-w-5xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {STATS.map((stat, i) => (
+            {statItems.map((stat, i) => (
               <FadeUp key={i} delay={i * 0.1}>
                 <motion.div
                   className="rounded-2xl p-8 text-center relative overflow-hidden"
@@ -191,10 +158,7 @@ export default function AboutPageContent({ locale }: { locale: string }) {
                     className="absolute inset-0 pointer-events-none"
                     style={{ background: "radial-gradient(ellipse at center, rgba(201,168,76,0.05) 0%, transparent 65%)" }}
                   />
-                  <div
-                    className="font-display text-4xl md:text-5xl font-bold mb-2 relative z-10"
-                    style={{ color: "#C9A84C" }}
-                  >
+                  <div className="font-display text-4xl md:text-5xl font-bold mb-2 relative z-10" style={{ color: "#C9A84C" }}>
                     {stat.value}
                   </div>
                   <div className="text-xs uppercase tracking-widest font-semibold relative z-10" style={{ color: "#8A8A8A" }}>
@@ -220,74 +184,51 @@ export default function AboutPageContent({ locale }: { locale: string }) {
         <div className="max-w-6xl mx-auto">
           <FadeUp className="text-center mb-16">
             <span className="text-xs font-bold uppercase tracking-[0.3em] mb-4 block" style={{ color: "#C9A84C" }}>
-              Our Values
+              {t("valuesBadge")}
             </span>
             <h2 className="font-display text-3xl md:text-4xl font-bold" style={{ color: "#F5F5F5" }}>
-              What Drives Us
+              {t("valuesHeadline")}
             </h2>
           </FadeUp>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {VALUES.map((v, i) => {
-              const Icon = v.icon
-              return (
-                <FadeUp key={i} delay={i * 0.12}>
+            {VALUE_ICONS.map((Icon, i) => (
+              <FadeUp key={i} delay={i * 0.12}>
+                <motion.div
+                  className="rounded-2xl p-8 flex flex-col gap-5 group relative overflow-hidden h-full"
+                  style={{
+                    background: "linear-gradient(145deg, #131313 0%, #111111 100%)",
+                    border: "1px solid rgba(201,168,76,0.10)",
+                  }}
+                  whileHover={
+                    prefersReduced
+                      ? {}
+                      : { y: -4, borderColor: "rgba(201,168,76,0.4)", boxShadow: "0 12px 40px rgba(201,168,76,0.10)" }
+                  }
+                  transition={{ duration: 0.25 }}
+                >
+                  <div className="absolute top-0 left-0 w-1/3 h-[1px] pointer-events-none" style={{ background: "linear-gradient(90deg, #C9A84C, transparent)" }} />
+                  <div className="absolute top-0 left-0 w-[1px] h-1/3 pointer-events-none" style={{ background: "linear-gradient(180deg, #C9A84C, transparent)" }} />
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" style={{ background: "radial-gradient(ellipse at top left, rgba(201,168,76,0.05) 0%, transparent 60%)" }} />
                   <motion.div
-                    className="rounded-2xl p-8 flex flex-col gap-5 group relative overflow-hidden h-full"
-                    style={{
-                      background: "linear-gradient(145deg, #131313 0%, #111111 100%)",
-                      border: "1px solid rgba(201,168,76,0.10)",
-                    }}
-                    whileHover={
-                      prefersReduced
-                        ? {}
-                        : {
-                            y: -4,
-                            borderColor: "rgba(201,168,76,0.4)",
-                            boxShadow: "0 12px 40px rgba(201,168,76,0.10)",
-                          }
-                    }
-                    transition={{ duration: 0.25 }}
+                    className="w-12 h-12 rounded-xl flex items-center justify-center"
+                    style={{ background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.2)" }}
+                    whileHover={prefersReduced ? {} : { rotate: 5, scale: 1.1 }}
+                    transition={{ duration: 0.2 }}
                   >
-                    {/* Corner accent */}
-                    <div
-                      className="absolute top-0 left-0 w-1/3 h-[1px] pointer-events-none"
-                      style={{ background: "linear-gradient(90deg, #C9A84C, transparent)" }}
-                    />
-                    <div
-                      className="absolute top-0 left-0 w-[1px] h-1/3 pointer-events-none"
-                      style={{ background: "linear-gradient(180deg, #C9A84C, transparent)" }}
-                    />
-                    {/* Hover glow */}
-                    <div
-                      className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-                      style={{ background: "radial-gradient(ellipse at top left, rgba(201,168,76,0.05) 0%, transparent 60%)" }}
-                    />
-
-                    <motion.div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center"
-                      style={{
-                        background: "rgba(201,168,76,0.08)",
-                        border: "1px solid rgba(201,168,76,0.2)",
-                      }}
-                      whileHover={prefersReduced ? {} : { rotate: 5, scale: 1.1 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <Icon className="w-6 h-6" style={{ color: "#C9A84C" }} />
-                    </motion.div>
-
-                    <div>
-                      <h3 className="font-display text-xl font-semibold mb-3" style={{ color: "#F5F5F5" }}>
-                        {v.title}
-                      </h3>
-                      <p className="text-sm leading-relaxed" style={{ color: "#8A8A8A" }}>
-                        {v.description}
-                      </p>
-                    </div>
+                    <Icon className="w-6 h-6" style={{ color: "#C9A84C" }} />
                   </motion.div>
-                </FadeUp>
-              )
-            })}
+                  <div>
+                    <h3 className="font-display text-xl font-semibold mb-3" style={{ color: "#F5F5F5" }}>
+                      {valueTitles[i]}
+                    </h3>
+                    <p className="text-sm leading-relaxed" style={{ color: "#8A8A8A" }}>
+                      {valueDescs[i]}
+                    </p>
+                  </div>
+                </motion.div>
+              </FadeUp>
+            ))}
           </div>
         </div>
       </section>
@@ -297,10 +238,10 @@ export default function AboutPageContent({ locale }: { locale: string }) {
         <div className="max-w-4xl mx-auto text-center">
           <FadeUp className="mb-12">
             <span className="text-xs font-bold uppercase tracking-[0.3em] mb-4 block" style={{ color: "#C9A84C" }}>
-              Trusted By
+              {t("clientsBadge")}
             </span>
             <h2 className="font-display text-3xl md:text-4xl font-bold" style={{ color: "#F5F5F5" }}>
-              Businesses That Chose Growth
+              {t("clientsHeadline")}
             </h2>
           </FadeUp>
 
@@ -317,11 +258,7 @@ export default function AboutPageContent({ locale }: { locale: string }) {
               whileHover={
                 prefersReduced
                   ? {}
-                  : {
-                      borderColor: "rgba(201,168,76,0.4)",
-                      boxShadow: "0 12px 48px rgba(201,168,76,0.12)",
-                      y: -4,
-                    }
+                  : { borderColor: "rgba(201,168,76,0.4)", boxShadow: "0 12px 48px rgba(201,168,76,0.12)", y: -4 }
               }
               transition={{ duration: 0.3 }}
             >
@@ -335,18 +272,14 @@ export default function AboutPageContent({ locale }: { locale: string }) {
                 />
               </div>
               <div>
-                <p className="font-display text-base font-semibold mb-1" style={{ color: "#F5F5F5" }}>
-                  Flying Mango Trip
-                </p>
-                <p className="text-sm" style={{ color: "#8A8A8A" }}>
-                  Korea–Thailand B2B Travel Platform
-                </p>
+                <p className="font-display text-base font-semibold mb-1" style={{ color: "#F5F5F5" }}>Flying Mango Trip</p>
+                <p className="text-sm" style={{ color: "#8A8A8A" }}>{t("clientDesc")}</p>
               </div>
               <span
                 className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest group-hover:gap-3 transition-all duration-200"
                 style={{ color: "#C9A84C" }}
               >
-                View Website <ArrowRight className="w-3.5 h-3.5" />
+                {t("clientCta")} <ArrowRight className="w-3.5 h-3.5" />
               </span>
             </motion.a>
           </FadeUp>
@@ -366,36 +299,30 @@ export default function AboutPageContent({ locale }: { locale: string }) {
         <div className="max-w-5xl mx-auto">
           <FadeUp className="text-center mb-16">
             <span className="text-xs font-bold uppercase tracking-[0.3em] mb-4 block" style={{ color: "#C9A84C" }}>
-              Our Approach
+              {t("principlesBadge")}
             </span>
             <h2 className="font-display text-3xl md:text-4xl font-bold" style={{ color: "#F5F5F5" }}>
-              How We Work
+              {t("principlesHeadline")}
             </h2>
           </FadeUp>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {PRINCIPLES.map((p, i) => {
-              const Icon = p.icon
-              return (
-                <FadeUp key={i} delay={i * 0.1}>
-                  <div
-                    className="rounded-2xl px-7 py-8 flex flex-col gap-4"
-                    style={{
-                      background: "rgba(17,17,17,0.9)",
-                      border: "1px solid rgba(201,168,76,0.10)",
-                    }}
-                  >
-                    <Icon className="w-6 h-6" style={{ color: "#C9A84C" }} />
-                    <h3 className="font-display text-lg font-semibold" style={{ color: "#F5F5F5" }}>
-                      {p.title}
-                    </h3>
-                    <p className="text-sm leading-relaxed" style={{ color: "#8A8A8A" }}>
-                      {p.description}
-                    </p>
-                  </div>
-                </FadeUp>
-              )
-            })}
+            {PRINCIPLE_ICONS.map((Icon, i) => (
+              <FadeUp key={i} delay={i * 0.1}>
+                <div
+                  className="rounded-2xl px-7 py-8 flex flex-col gap-4"
+                  style={{ background: "rgba(17,17,17,0.9)", border: "1px solid rgba(201,168,76,0.10)" }}
+                >
+                  <Icon className="w-6 h-6" style={{ color: "#C9A84C" }} />
+                  <h3 className="font-display text-lg font-semibold" style={{ color: "#F5F5F5" }}>
+                    {principleTitles[i]}
+                  </h3>
+                  <p className="text-sm leading-relaxed" style={{ color: "#8A8A8A" }}>
+                    {principleDescs[i]}
+                  </p>
+                </div>
+              </FadeUp>
+            ))}
           </div>
         </div>
       </section>
@@ -405,17 +332,17 @@ export default function AboutPageContent({ locale }: { locale: string }) {
         <div className="max-w-3xl mx-auto text-center">
           <FadeUp>
             <h2 className="font-display text-3xl md:text-5xl font-bold mb-5" style={{ color: "#F5F5F5" }}>
-              Ready to Transform Your Business?
+              {t("ctaHeadline")}
             </h2>
             <p className="text-lg mb-10 max-w-xl mx-auto" style={{ color: "#8A8A8A" }}>
-              Tell us about your goals. We respond within 24 hours — no bots, no templates.
+              {t("ctaSub")}
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
               <ShimmerButton href={`/${locale}#contact`} variant="gold" className="text-base px-10 py-5">
-                Get a Free Consultation →
+                {t("ctaPrimary")}
               </ShimmerButton>
               <ShimmerButton href={`/${locale}/how-it-works`} variant="outline" className="text-base px-8 py-4">
-                See How It Works
+                {t("ctaSecondary")}
               </ShimmerButton>
             </div>
           </FadeUp>
