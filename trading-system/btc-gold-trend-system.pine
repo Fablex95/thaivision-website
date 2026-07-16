@@ -1,0 +1,227 @@
+//@version=5
+// ============================================================================
+// BTC & GOLD TREND SYSTEM  —  Trendfolge + Pullback mit vollständiger Chartanalyse
+//
+// Basiert auf den am besten dokumentierten Ansätzen der letzten 5 Jahre:
+//   - Supertrend (ATR 10, Faktor 3.0) als Trendfilter  (BTC daily: +1.054 % seit 2017,
+//     CAGR ~33 %, Max-Drawdown -61 % — Quelle: boringedge.com Backtest)
+//   - EMA 21/50 Swing-Crossover                        (XAUUSD daily: Profit Factor 1.85,
+//     Max-DD ~3 % — Quelle: quant-signals.com Backtest)
+//   - Pullback-Entries in die Fibonacci "Golden Zone" (0.5–0.618)
+//
+// Enthaltene Analyse-Bausteine:
+//   ✔ Support & Resistance (automatisch aus Pivot-Hochs/-Tiefs)
+//   ✔ Trendlinien (automatisch aus den letzten Pivots gezeichnet)
+//   ✔ Fibonacci-Retracements (automatisch vom letzten Swing)
+//   ✔ Candlestick-Chartmuster (Engulfing, Hammer, Shooting Star)
+//   ✔ Momentum-Filter (RSI)
+//   ✔ Risk-Management: ATR-Stop, R-Multiple-Target, Positionsgröße nach Risiko-%
+//
+// Empfohlen: BTCUSD & XAUUSD, Timeframe 4h oder 1D.
+// WARNUNG: Keine Strategie liefert garantierte Renditen. Historische Ergebnisse
+// sind keine Garantie für die Zukunft. Handel nur mit Kapital, dessen Verlust
+// du verkraften kannst.
+// ============================================================================
+
+strategy("BTC & Gold Trend System",
+     overlay = true,
+     initial_capital = 10000,
+     currency = currency.USD,
+     commission_type = strategy.commission.percent,
+     commission_value = 0.05,
+     slippage = 2,
+     pyramiding = 0,
+     calc_on_every_tick = false)
+
+// ----------------------------------------------------------------------------
+// Inputs
+// ----------------------------------------------------------------------------
+grpTrend  = "Trend-Engine"
+emaFastLen   = input.int(21,  "EMA schnell", minval = 1, group = grpTrend)
+emaSlowLen   = input.int(50,  "EMA langsam", minval = 2, group = grpTrend)
+emaMacroLen  = input.int(200, "EMA Makro-Filter (0 = aus)", minval = 0, group = grpTrend)
+stAtrLen     = input.int(10,  "Supertrend ATR-Länge", group = grpTrend)
+stFactor     = input.float(3.0, "Supertrend Faktor", step = 0.1, group = grpTrend)
+allowShorts  = input.bool(true, "Shorts erlauben", group = grpTrend)
+
+grpPivot  = "Support/Resistance & Trendlinien"
+pivotLen     = input.int(10, "Pivot-Länge (links/rechts)", minval = 2, group = grpPivot)
+showSR       = input.bool(true, "S/R-Levels zeichnen", group = grpPivot)
+showTrendln  = input.bool(true, "Trendlinien zeichnen", group = grpPivot)
+srProximity  = input.float(1.5, "S/R-Nähe-Toleranz (ATR-Faktor)", step = 0.1, group = grpPivot)
+
+grpFib    = "Fibonacci"
+showFib      = input.bool(true, "Fib-Levels zeichnen", group = grpFib)
+fibLow       = input.float(0.5,   "Golden Zone von", step = 0.01, group = grpFib)
+fibHigh      = input.float(0.618, "Golden Zone bis", step = 0.001, group = grpFib)
+
+grpFilter = "Filter & Muster"
+useRsi       = input.bool(true, "RSI-Filter", group = grpFilter)
+rsiLen       = input.int(14, "RSI-Länge", group = grpFilter)
+useCandles   = input.bool(true, "Candlestick-Bestätigung für Pullback-Entries", group = grpFilter)
+
+grpRisk   = "Risk-Management"
+riskPct      = input.float(1.0, "Risiko pro Trade (% vom Kapital)", minval = 0.1, maxval = 5.0, step = 0.1, group = grpRisk)
+atrLen       = input.int(14, "ATR-Länge (Stop)", group = grpRisk)
+atrStopMult  = input.float(2.0, "Stop-Abstand (x ATR)", step = 0.1, group = grpRisk)
+tpRMultiple  = input.float(3.0, "Take-Profit (R-Multiple)", step = 0.5, group = grpRisk)
+useTrailing  = input.bool(true, "Supertrend als Trailing-Stop", group = grpRisk)
+
+// ----------------------------------------------------------------------------
+// Trend-Engine
+// ----------------------------------------------------------------------------
+emaFast  = ta.ema(close, emaFastLen)
+emaSlow  = ta.ema(close, emaSlowLen)
+emaMacro = ta.ema(close, emaMacroLen == 0 ? 200 : emaMacroLen)
+[stLine, stDir] = ta.supertrend(stFactor, stAtrLen)   // stDir: -1 = bullisch, 1 = bärisch
+
+atr = ta.atr(atrLen)
+rsi = ta.rsi(close, rsiLen)
+
+bullTrend = emaFast > emaSlow and stDir < 0 and (emaMacroLen == 0 or close > emaMacro)
+bearTrend = emaFast < emaSlow and stDir > 0 and (emaMacroLen == 0 or close < emaMacro)
+
+freshBullCross = ta.crossover(emaFast, emaSlow)
+freshBearCross = ta.crossunder(emaFast, emaSlow)
+
+// ----------------------------------------------------------------------------
+// Pivots → Support/Resistance-Levels + Trendlinien
+// ----------------------------------------------------------------------------
+ph = ta.pivothigh(high, pivotLen, pivotLen)
+pl = ta.pivotlow(low,  pivotLen, pivotLen)
+
+var float lastPH  = na
+var int   lastPHbar = na
+var float prevPH  = na
+var int   prevPHbar = na
+var float lastPL  = na
+var int   lastPLbar = na
+var float prevPL  = na
+var int   prevPLbar = na
+
+if not na(ph)
+    prevPH    := lastPH
+    prevPHbar := lastPHbar
+    lastPH    := ph
+    lastPHbar := bar_index - pivotLen
+if not na(pl)
+    prevPL    := lastPL
+    prevPLbar := lastPLbar
+    lastPL    := pl
+    lastPLbar := bar_index - pivotLen
+
+// S/R-Linien zeichnen
+var line resLine = na
+var line supLine = na
+if showSR and not na(ph)
+    line.delete(resLine)
+    resLine := line.new(lastPHbar, lastPH, bar_index, lastPH, extend = extend.right, color = color.new(color.red, 30), style = line.style_dashed)
+if showSR and not na(pl)
+    line.delete(supLine)
+    supLine := line.new(lastPLbar, lastPL, bar_index, lastPL, extend = extend.right, color = color.new(color.green, 30), style = line.style_dashed)
+
+// Trendlinien aus den letzten zwei Pivots
+var line tlRes = na
+var line tlSup = na
+if showTrendln and not na(lastPH) and not na(prevPH) and prevPHbar < lastPHbar
+    line.delete(tlRes)
+    tlRes := line.new(prevPHbar, prevPH, lastPHbar, lastPH, extend = extend.right, color = color.new(color.orange, 0))
+if showTrendln and not na(lastPL) and not na(prevPL) and prevPLbar < lastPLbar
+    line.delete(tlSup)
+    tlSup := line.new(prevPLbar, prevPL, lastPLbar, lastPL, extend = extend.right, color = color.new(color.teal, 0))
+
+nearSupport    = not na(lastPL) and math.abs(low  - lastPL) <= atr * srProximity
+nearResistance = not na(lastPH) and math.abs(high - lastPH) <= atr * srProximity
+
+// ----------------------------------------------------------------------------
+// Fibonacci-Retracement vom letzten Swing
+// ----------------------------------------------------------------------------
+swingHi = ta.highest(high, 50)
+swingLo = ta.lowest(low, 50)
+fibRange = swingHi - swingLo
+// Golden Zone im Aufwärtstrend: Rücksetzer vom Hoch
+gzTopUp    = swingHi - fibRange * fibLow
+gzBottomUp = swingHi - fibRange * fibHigh
+// Golden Zone im Abwärtstrend: Erholung vom Tief
+gzBottomDn = swingLo + fibRange * fibLow
+gzTopDn    = swingLo + fibRange * fibHigh
+
+inGoldenZoneUp = low  <= gzTopUp   and low  >= gzBottomUp * 0.99
+inGoldenZoneDn = high >= gzBottomDn and high <= gzTopDn * 1.01
+
+var line fib50  = na
+var line fib618 = na
+if showFib and barstate.islast
+    line.delete(fib50)
+    line.delete(fib618)
+    fib50  := line.new(bar_index - 50, gzTopUp,    bar_index, gzTopUp,    color = color.new(color.yellow, 40))
+    fib618 := line.new(bar_index - 50, gzBottomUp, bar_index, gzBottomUp, color = color.new(color.yellow, 20))
+
+// ----------------------------------------------------------------------------
+// Candlestick-Chartmuster
+// ----------------------------------------------------------------------------
+body     = math.abs(close - open)
+upperW   = high - math.max(close, open)
+lowerW   = math.min(close, open) - low
+
+bullEngulf = close > open and close[1] < open[1] and close >= open[1] and open <= close[1] and body > body[1]
+bearEngulf = close < open and close[1] > open[1] and close <= open[1] and open >= close[1] and body > body[1]
+hammer       = lowerW > body * 2 and upperW < body and close > open
+shootingStar = upperW > body * 2 and lowerW < body and close < open
+
+bullPattern = bullEngulf or hammer
+bearPattern = bearEngulf or shootingStar
+
+// ----------------------------------------------------------------------------
+// Entry-Logik
+// ----------------------------------------------------------------------------
+rsiOkLong  = not useRsi or (rsi > 40 and rsi < 75)
+rsiOkShort = not useRsi or (rsi < 60 and rsi > 25)
+
+// Typ A: frischer Trendstart (EMA-Crossover, vom Supertrend bestätigt)
+trendEntryLong  = freshBullCross and stDir < 0 and rsiOkLong
+trendEntryShort = freshBearCross and stDir > 0 and rsiOkShort
+
+// Typ B: Pullback im bestehenden Trend (Golden Zone ODER Support/Resistance) + Musterbestätigung
+pullbackLong  = bullTrend and (inGoldenZoneUp or nearSupport)    and (not useCandles or bullPattern) and rsiOkLong
+pullbackShort = bearTrend and (inGoldenZoneDn or nearResistance) and (not useCandles or bearPattern) and rsiOkShort
+
+longSignal  = trendEntryLong  or pullbackLong
+shortSignal = (trendEntryShort or pullbackShort) and allowShorts
+
+// ----------------------------------------------------------------------------
+// Risk-Management & Orders
+// ----------------------------------------------------------------------------
+stopDist = atr * atrStopMult
+riskCash = strategy.equity * riskPct / 100.0
+qty      = stopDist > 0 ? riskCash / stopDist : na
+
+if longSignal and strategy.position_size == 0 and not na(qty)
+    strategy.entry("Long", strategy.long, qty = qty)
+    strategy.exit("Long TP/SL", "Long", stop = close - stopDist, limit = close + stopDist * tpRMultiple)
+
+if shortSignal and strategy.position_size == 0 and not na(qty)
+    strategy.entry("Short", strategy.short, qty = qty)
+    strategy.exit("Short TP/SL", "Short", stop = close + stopDist, limit = close - stopDist * tpRMultiple)
+
+// Trailing über Supertrend: Ausstieg bei Trendwechsel
+if useTrailing
+    if strategy.position_size > 0 and stDir > 0
+        strategy.close("Long", comment = "Supertrend-Flip")
+    if strategy.position_size < 0 and stDir < 0
+        strategy.close("Short", comment = "Supertrend-Flip")
+
+// ----------------------------------------------------------------------------
+// Visualisierung
+// ----------------------------------------------------------------------------
+plot(emaFast,  "EMA 21",  color = color.new(color.blue,   0))
+plot(emaSlow,  "EMA 50",  color = color.new(color.purple, 0))
+plot(emaMacroLen == 0 ? na : emaMacro, "EMA 200", color = color.new(color.gray, 40))
+plot(stLine, "Supertrend", color = stDir < 0 ? color.green : color.red, style = plot.style_linebr)
+
+plotshape(longSignal,  "Long",  shape.triangleup,   location.belowbar, color.green, size = size.small)
+plotshape(shortSignal, "Short", shape.triangledown, location.abovebar, color.red,   size = size.small)
+plotshape(useCandles and bullPattern, "Bull-Muster", shape.circle, location.belowbar, color.new(color.green, 60), size = size.tiny)
+plotshape(useCandles and bearPattern, "Bär-Muster",  shape.circle, location.abovebar, color.new(color.red,   60), size = size.tiny)
+
+bgcolor(bullTrend ? color.new(color.green, 95) : bearTrend ? color.new(color.red, 95) : na)
