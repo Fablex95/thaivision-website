@@ -12,7 +12,8 @@
 // Enthaltene Analyse-Bausteine:
 //   ✔ Support & Resistance (automatisch aus Pivot-Hochs/-Tiefs)
 //   ✔ Trendlinien (automatisch aus den letzten Pivots gezeichnet)
-//   ✔ Fibonacci-Retracements (automatisch vom letzten Swing)
+//   ✔ Fibonacci-Retracements (automatisch vom letzten Swing):
+//       Golden Zone 0.5–0.618 + Deep Zone 0.886–0.941 als zusätzliche Entries
 //   ✔ Candlestick-Chartmuster (Engulfing, Hammer, Shooting Star)
 //   ✔ Momentum-Filter (RSI)
 //   ✔ Risk-Management: ATR-Stop, R-Multiple-Target, Positionsgröße nach Risiko-%
@@ -54,6 +55,9 @@ grpFib    = "Fibonacci"
 showFib      = input.bool(true, "Fib-Levels zeichnen", group = grpFib)
 fibLow       = input.float(0.5,   "Golden Zone von", step = 0.01, group = grpFib)
 fibHigh      = input.float(0.618, "Golden Zone bis", step = 0.001, group = grpFib)
+useDeepFib   = input.bool(true, "Deep Zone (0.886–0.941) als Entry nutzen", group = grpFib)
+fibDeep1     = input.float(0.886, "Deep Zone von", step = 0.001, group = grpFib)
+fibDeep2     = input.float(0.941, "Deep Zone bis", step = 0.001, group = grpFib)
 
 grpFilter = "Filter & Muster"
 useRsi       = input.bool(true, "RSI-Filter", group = grpFilter)
@@ -149,13 +153,31 @@ gzTopDn    = swingLo + fibRange * fibHigh
 inGoldenZoneUp = low  <= gzTopUp   and low  >= gzBottomUp * 0.99
 inGoldenZoneDn = high >= gzBottomDn and high <= gzTopDn * 1.01
 
-var line fib50  = na
-var line fib618 = na
+// Deep Zone (0.886–0.941): tiefe Retracement-Einstiege mit engem Stop
+// Im Aufwärtstrend: sehr tiefer Rücksetzer vom Hoch
+dzTopUp    = swingHi - fibRange * fibDeep1
+dzBottomUp = swingHi - fibRange * fibDeep2
+// Im Abwärtstrend: sehr hohe Erholung vom Tief
+dzBottomDn = swingLo + fibRange * fibDeep1
+dzTopDn    = swingLo + fibRange * fibDeep2
+
+inDeepZoneUp = useDeepFib and low  <= dzTopUp    and low  >= dzBottomUp * 0.99
+inDeepZoneDn = useDeepFib and high >= dzBottomDn and high <= dzTopDn * 1.01
+
+var line fib50   = na
+var line fib618  = na
+var line fib886  = na
+var line fib941  = na
 if showFib and barstate.islast
     line.delete(fib50)
     line.delete(fib618)
+    line.delete(fib886)
+    line.delete(fib941)
     fib50  := line.new(bar_index - 50, gzTopUp,    bar_index, gzTopUp,    color = color.new(color.yellow, 40))
     fib618 := line.new(bar_index - 50, gzBottomUp, bar_index, gzBottomUp, color = color.new(color.yellow, 20))
+    if useDeepFib
+        fib886 := line.new(bar_index - 50, dzTopUp,    bar_index, dzTopUp,    color = color.new(color.fuchsia, 30), style = line.style_dotted)
+        fib941 := line.new(bar_index - 50, dzBottomUp, bar_index, dzBottomUp, color = color.new(color.fuchsia, 10), style = line.style_dotted)
 
 // ----------------------------------------------------------------------------
 // Candlestick-Chartmuster
@@ -186,8 +208,14 @@ trendEntryShort = freshBearCross and stDir > 0 and rsiOkShort
 pullbackLong  = bullTrend and (inGoldenZoneUp or nearSupport)    and (not useCandles or bullPattern) and rsiOkLong
 pullbackShort = bearTrend and (inGoldenZoneDn or nearResistance) and (not useCandles or bearPattern) and rsiOkShort
 
-longSignal  = trendEntryLong  or pullbackLong
-shortSignal = (trendEntryShort or pullbackShort) and allowShorts
+// Typ C: Deep-Zone-Entry (0.886–0.941) — sehr tiefer Rücksetzer, der die EMAs meist
+// unterschreitet. Deshalb nur Makro-Richtung (EMA 200) als Trendfilter, dafür ist
+// Candlestick-Bestätigung hier Pflicht (Reversal-Charakter, enger natürlicher Stop).
+deepLong  = inDeepZoneUp and (emaMacroLen == 0 or close > emaMacro) and bullPattern and rsiOkLong
+deepShort = inDeepZoneDn and (emaMacroLen == 0 or close < emaMacro) and bearPattern and rsiOkShort
+
+longSignal  = trendEntryLong  or pullbackLong  or deepLong
+shortSignal = (trendEntryShort or pullbackShort or deepShort) and allowShorts
 
 // ----------------------------------------------------------------------------
 // Risk-Management & Orders
@@ -221,6 +249,8 @@ plot(stLine, "Supertrend", color = stDir < 0 ? color.green : color.red, style = 
 
 plotshape(longSignal,  "Long",  shape.triangleup,   location.belowbar, color.green, size = size.small)
 plotshape(shortSignal, "Short", shape.triangledown, location.abovebar, color.red,   size = size.small)
+plotshape(deepLong,  "Deep-Fib Long (0.886/0.941)",  shape.diamond, location.belowbar, color.fuchsia, size = size.small)
+plotshape(deepShort and allowShorts, "Deep-Fib Short (0.886/0.941)", shape.diamond, location.abovebar, color.fuchsia, size = size.small)
 plotshape(useCandles and bullPattern, "Bull-Muster", shape.circle, location.belowbar, color.new(color.green, 60), size = size.tiny)
 plotshape(useCandles and bearPattern, "Bär-Muster",  shape.circle, location.abovebar, color.new(color.red,   60), size = size.tiny)
 

@@ -26,11 +26,12 @@ Die besten seriösen Systeme liefern also grob **30–100 % pro Jahr** (BTC, mit
 **Zwei Entry-Typen:**
 1. **Trend-Entry:** frischer EMA-21/50-Crossover, vom Supertrend bestätigt
 2. **Pullback-Entry:** bestehender Trend + Rücksetzer in die **Fibonacci Golden Zone (0,5–0,618)** oder an ein **Support/Resistance-Level**, bestätigt durch ein **Candlestick-Muster** (Bullish/Bearish Engulfing, Hammer, Shooting Star)
+3. **Deep-Zone-Entry:** sehr tiefer Rücksetzer in die **Fibonacci Deep Zone (0,886–0,941)**. Da der Kurs hier meist unter den EMAs liegt, gilt nur die Makro-Richtung (EMA 200) als Trendfilter — dafür ist die Candlestick-Bestätigung Pflicht. Diese Entries haben Reversal-Charakter mit natürlich engem Stop (das Swing-Extrem liegt direkt darunter/darüber). Im Chart als **pinke Diamanten** markiert, die Levels als gepunktete pinke Linien. Abschaltbar über „Deep Zone als Entry nutzen".
 
 **Automatische Chartanalyse (wird direkt in den Chart gezeichnet):**
 - Support- und Resistance-Levels aus Pivot-Hochs/-Tiefs
 - Trendlinien, die die letzten Pivots verbinden
-- Fibonacci-Retracement-Zonen vom letzten Swing
+- Fibonacci-Retracement-Zonen vom letzten Swing (Golden Zone 0,5/0,618 gelb, Deep Zone 0,886/0,941 pink gepunktet)
 - Markierung erkannter Candlestick-Muster
 - RSI-Momentumfilter (blockt überkaufte Longs / überverkaufte Shorts)
 
