@@ -1,4 +1,4 @@
-# BTC & Gold Trend System (TradingView / Pine Script v5)
+# BTC & Gold Trend System v2 (TradingView / Pine Script v5)
 
 Ein komplettes Trading-System für **Bitcoin (BTCUSD)** und **Gold (XAUUSD)**, aufgebaut aus den am besten dokumentierten Strategie-Bausteinen der letzten 5 Jahre — mit allen gewünschten Analyse-Elementen: Support/Resistance, Trendlinien, Fibonacci, Chartmuster und striktem Risk-Management.
 
@@ -15,6 +15,18 @@ Ein komplettes Trading-System für **Bitcoin (BTCUSD)** und **Gold (XAUUSD)**, a
 | 4-Phasen-Pullback-System | XAUUSD | 2020–2025 | +44,75 % gesamt, Sharpe 0,89, Max-DD 5,8 % |
 
 Die besten seriösen Systeme liefern also grob **30–100 % pro Jahr** (BTC, mit hohen Drawdowns) bzw. **8–15 % pro Jahr** (Gold, mit niedrigen Drawdowns). Jeder Backtest, der 100 %/Monat zeigt, ist overfitted oder gefälscht und bricht live zusammen. Dieses System hier ist ehrlich gebaut: Es kombiniert die Bausteine mit den besten dokumentierten Ergebnissen und schützt dein Kapital durch Positionsgrößen-Steuerung.
+
+## Neu in v2 (Fixes aus der kritischen Bewertung)
+
+1. **Deep-Fib-RSI-Konflikt behoben:** Deep-Entries (0,886/0,941) haben jetzt eine eigene, tiefere RSI-Grenze (Standard: RSI > 20 statt > 40). Vorher blockierte der Standard-Filter fast alle Deep-Einstiege, weil der RSI nach so tiefen Rücksetzern naturgemäß unter 40 steht.
+2. **Echte Swing-Erkennung für Fibonacci:** Die Retracement-Zonen werden jetzt aus bestätigten Pivot-Hochs/-Tiefs berechnet (letzter echter Impuls), nicht mehr aus dem stumpfen 50-Kerzen-Hoch/Tief. Mini-Swings kleiner als 1 ATR werden ignoriert (Seitwärts-Rauschen).
+3. **Trendlinien handeln jetzt:** Ein Bounce an einer steigenden Support-Trendlinie bzw. eine Abweisung an einer fallenden Resistance-Trendlinie ist eine eigene Entry-Zone (abschaltbar). Vorher waren die Linien reine Dekoration.
+4. **Mehrere S/R-Levels:** Die letzten 5 Pivot-Levels je Seite werden gespeichert, gezeichnet und geprüft — nicht mehr nur das allerletzte.
+5. **Positions-Cap gegen Gap-Risiko:** Der Positionswert ist auf max. 100 % des Kapitals begrenzt (einstellbar). Wichtig für Gold: Wochenend-Gaps können Stops überspringen — der Cap begrenzt den maximalen Schaden.
+6. **Candlestick-Qualitätsfilter:** Muster zählen nur noch mit Mindest-Körpergröße (0,3 × ATR) und optional Volumen über dem 20er-Schnitt. Filtert bedeutungslose Mini-Kerzen.
+7. **Markt-Presets BTC vs. Gold:** Auto-Erkennung am Symbol. Gold startet mit engeren Werten (Supertrend 2,5 / Stop 1,8 ATR / TP 2,5R), BTC mit den Standardwerten. Presets sind Startwerte — im Backtest je Markt verifizieren.
+
+**Nicht per Code lösbar (bleibt deine Aufgabe beim Testen):** Die Quellen-Backtests sind nicht unabhängig verifiziert, und die reale Performance dieses Systems kennt erst der Strategy Tester. Gaps bleiben trotz Cap ein Restrisiko.
 
 ## Was das System macht
 
@@ -51,14 +63,20 @@ Die besten seriösen Systeme liefern also grob **30–100 % pro Jahr** (BTC, mit
 
 ## Empfohlene Einstellungen
 
+Das Preset „Auto" wählt die Startwerte selbst (Krypto → BTC-Preset, sonst Gold-Preset):
+
 | Parameter | BTC (1D) | Gold (4h/1D) |
 |---|---|---|
 | EMA schnell / langsam | 21 / 50 | 21 / 50 |
-| Supertrend | 10 / 3,0 | 10 / 3,0 |
+| Supertrend | 10 / 3,0 | 10 / 2,5 |
+| Stop-Abstand | 2,0 × ATR | 1,8 × ATR |
+| Take-Profit | 3R | 2,5R |
 | Risiko pro Trade | 1 % | 1 % |
-| Take-Profit | 3R | 2–3R |
+| Max. Positionswert | 100 % | 100 % |
 | Shorts | an | an |
 | EMA-200-Filter | an | an (bei Seitwärtsmarkt aus) |
+
+Über „Manuell" nutzt du stattdessen komplett deine eigenen Eingaben.
 
 ## So testest du seriös
 
