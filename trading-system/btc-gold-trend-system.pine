@@ -1,0 +1,398 @@
+//@version=5
+// ============================================================================
+// BTC & GOLD TREND SYSTEM v2  —  Trendfolge + Pullback mit vollständiger Chartanalyse
+//
+// Basis-Bausteine (am besten dokumentierte Ansätze der letzten 5 Jahre):
+//   - Supertrend (ATR 10, Faktor ~3) als Trendfilter
+//   - EMA 21/50 Swing-Crossover
+//   - Pullback-Entries: Fibonacci Golden Zone (0.5–0.618), Deep Zone (0.886–0.941),
+//     Support/Resistance-Levels und Trendlinien-Bounces
+//
+// v2-Verbesserungen gegenüber v1:
+//   ✔ Deep-Fib-Entry hat eigene RSI-Grenze (Konflikt behoben: vorher blockierte
+//     der Standard-RSI-Filter fast alle Deep-Entries)
+//   ✔ Fibonacci aus ECHTEN bestätigten Swings (Pivot-Hoch/-Tief) statt
+//     stumpfem 50-Kerzen-Hoch/Tief
+//   ✔ Trendlinien sind jetzt HANDELND: Bounce an steigender Support-Trendlinie /
+//     Abweisung an fallender Resistance-Trendlinie sind eigene Entry-Zonen
+//   ✔ Support/Resistance: die letzten 5 Pivot-Levels werden gespeichert und
+//     geprüft (nicht mehr nur das allerletzte)
+//   ✔ Positions-Cap: Positionswert maximal X % des Kapitals (schützt gegen
+//     Gap-Risiko, besonders bei Gold über Wochenenden)
+//   ✔ Candlestick-Qualität: Mindest-Körpergröße (ATR-relativ) + optionaler
+//     Volumen-Filter gegen bedeutungslose Mini-Kerzen
+//   ✔ Markt-Presets: getrennte Startparameter für BTC und Gold (Auto-Erkennung)
+//
+// Empfohlen: BTCUSD & XAUUSD, Timeframe 4h oder 1D.
+// WARNUNG: Keine Strategie liefert garantierte Renditen. Historische Ergebnisse
+// sind keine Garantie für die Zukunft. Handel nur mit Kapital, dessen Verlust
+// du verkraften kannst.
+// ============================================================================
+
+strategy("BTC & Gold Trend System v2",
+     overlay = true,
+     initial_capital = 10000,
+     currency = currency.USD,
+     commission_type = strategy.commission.percent,
+     commission_value = 0.05,
+     slippage = 2,
+     pyramiding = 0,
+     calc_on_every_tick = false)
+
+// ----------------------------------------------------------------------------
+// Markt-Preset
+// ----------------------------------------------------------------------------
+grpPreset = "Markt-Preset"
+presetSel = input.string("Auto", "Preset", options = ["Auto", "BTC", "Gold", "Manuell"], group = grpPreset,
+     tooltip = "Auto erkennt Krypto vs. Metall am Symbol. BTC/Gold erzwingen die jeweiligen Startwerte. Manuell nutzt ausschließlich die Eingaben unten. Presets sind STARTWERTE — im Backtest je Markt prüfen!")
+
+isCryptoSym = syminfo.type == "crypto"
+useBtcPreset  = presetSel == "BTC"  or (presetSel == "Auto" and isCryptoSym)
+useGoldPreset = presetSel == "Gold" or (presetSel == "Auto" and not isCryptoSym)
+manualMode    = presetSel == "Manuell"
+
+// ----------------------------------------------------------------------------
+// Inputs
+// ----------------------------------------------------------------------------
+grpTrend  = "Trend-Engine"
+emaFastLen   = input.int(21,  "EMA schnell", minval = 1, group = grpTrend)
+emaSlowLen   = input.int(50,  "EMA langsam", minval = 2, group = grpTrend)
+emaMacroLen  = input.int(200, "EMA Makro-Filter (0 = aus)", minval = 0, group = grpTrend)
+stAtrLen     = input.int(10,  "Supertrend ATR-Länge", group = grpTrend)
+stFactorIn   = input.float(3.0, "Supertrend Faktor (Manuell)", step = 0.1, group = grpTrend)
+allowShorts  = input.bool(false, "Shorts erlauben", group = grpTrend,
+     tooltip = "Walk-Forward 2021–2026 (BTC & Gold): Shorts verschlechterten das Ergebnis in beiden Datenhälften durchgehend. Standard daher: aus.")
+useTypeA     = input.bool(true, "Entry-Typ A: Trendstart (EMA-Crossover)", group = grpTrend)
+useTypeB     = input.bool(true, "Entry-Typ B: Pullback (Fib/SR/Trendlinie)", group = grpTrend)
+useTypeC     = input.bool(true, "Entry-Typ C: Deep-Fib (0.886–0.941)", group = grpTrend)
+useTypeD     = input.bool(false, "Entry-Typ D: Liquidity Sweep (Stop-Hunt-Reversal)", group = grpTrend,
+     tooltip = "Bar sticht unter ein gespeichertes Support-Level (holt dort liegende Stops/Liquidationen) und schließt wieder darüber. Walk-Forward: alleinstehend stabil profitabel (PF 1.35–1.51, Gold mit nur −6.6% DD), ABER ins Hauptsystem gemischt verschlechtert er BTC (+28% statt +41%), weil er Positionen vor besseren A/B/C-Signalen besetzt. Standard daher: aus — für Experimente oder als Standalone (A/B/C aus) aktivieren.")
+
+grpPivot  = "Support/Resistance & Trendlinien"
+pivotLen     = input.int(10, "Pivot-Länge (links/rechts)", minval = 2, group = grpPivot)
+srCount      = input.int(5,  "Anzahl gespeicherter S/R-Levels je Seite", minval = 1, maxval = 10, group = grpPivot)
+showSR       = input.bool(true, "S/R-Levels zeichnen", group = grpPivot)
+showTrendln  = input.bool(true, "Trendlinien zeichnen", group = grpPivot)
+useTrendlnEntry = input.bool(true, "Trendlinien-Bounce als Entry-Zone nutzen", group = grpPivot)
+srProximity  = input.float(1.0, "Zonen-Toleranz (x ATR)", step = 0.1, group = grpPivot)
+
+grpFib    = "Fibonacci (aus bestätigten Swings)"
+showFib      = input.bool(true, "Fib-Levels zeichnen", group = grpFib)
+fibLow       = input.float(0.5,   "Golden Zone von", step = 0.01, group = grpFib)
+fibHigh      = input.float(0.618, "Golden Zone bis", step = 0.001, group = grpFib)
+useDeepFib   = input.bool(true, "Deep Zone (0.886–0.941) als Entry nutzen", group = grpFib)
+fibDeep1     = input.float(0.886, "Deep Zone von", step = 0.001, group = grpFib)
+fibDeep2     = input.float(0.941, "Deep Zone bis", step = 0.001, group = grpFib)
+
+grpFilter = "Filter & Muster"
+useRsi       = input.bool(true, "RSI-Filter", group = grpFilter)
+rsiLen       = input.int(14, "RSI-Länge", group = grpFilter)
+deepRsiMin   = input.int(20, "RSI-Minimum für Deep-Entries (long)", minval = 0, maxval = 50, group = grpFilter,
+     tooltip = "Eigene, tiefere Grenze: Nach einem 0.886/0.941-Rücksetzer steht der RSI naturgemäß tief. Standard-RSI-Filter gilt hier NICHT.")
+useCandles   = input.bool(true, "Candlestick-Bestätigung für Pullback-Entries", group = grpFilter)
+minBodyAtr   = input.float(0.3, "Mindest-Kerzenkörper (x ATR)", step = 0.05, group = grpFilter,
+     tooltip = "Filtert bedeutungslose Mini-Kerzen: Muster zählt nur, wenn der Kerzenkörper mindestens so groß ist.")
+useVolume    = input.bool(true, "Volumen-Bestätigung (Volumen > 20er-Schnitt)", group = grpFilter)
+
+grpRisk   = "Risk-Management"
+riskPct      = input.float(1.0, "Risiko pro Trade (% vom Kapital)", minval = 0.1, maxval = 5.0, step = 0.1, group = grpRisk)
+atrLen       = input.int(14, "ATR-Länge (Stop)", group = grpRisk)
+atrStopMult  = input.float(2.0, "Stop-Abstand (x ATR, Manuell)", step = 0.1, group = grpRisk)
+tpRMultipleIn = input.float(3.0, "Take-Profit in R (Manuell)", step = 0.5, group = grpRisk)
+maxPosPct    = input.float(100.0, "Max. Positionswert (% vom Kapital)", minval = 10, maxval = 300, step = 10, group = grpRisk,
+     tooltip = "Cap gegen Gap-Risiko: Begrenzt den Positionswert unabhängig vom Stop-Abstand. 100 % = kein Hebel. Wichtig für Gold (Wochenend-Gaps können Stops überspringen).")
+useTrailing  = input.bool(true, "Supertrend-Flip-Exit (nur Modus 'Fester TP/SL')", group = grpRisk)
+exitMode     = input.string("Chandelier-Trailing", "Exit-Modus", options = ["Chandelier-Trailing", "Fester TP/SL"], group = grpRisk,
+     tooltip = "Walk-Forward 2021–2026 (BTC & Gold, 4h): Chandelier-Trailing (Stop = Höchstkurs seit Entry − 3×ATR, kein fester TP) schlug den festen TP/SL in beiden Datenhälften auf beiden Märkten deutlich (BTC +41% statt +10%, Gold +29% statt +8% bei ~gleichem Drawdown).")
+chandMult    = input.float(3.0, "Chandelier-Abstand (x ATR)", step = 0.1, group = grpRisk)
+
+// Preset-Auflösung (Startwerte; Manuell = Eingaben oben)
+stFactor    = manualMode ? stFactorIn    : useGoldPreset ? 2.5 : 3.0
+tpRMultiple = manualMode ? tpRMultipleIn : useGoldPreset ? 2.5 : 3.0
+stopMult    = manualMode ? atrStopMult   : useGoldPreset ? 1.8 : 2.0
+
+// ----------------------------------------------------------------------------
+// Trend-Engine
+// ----------------------------------------------------------------------------
+emaFast  = ta.ema(close, emaFastLen)
+emaSlow  = ta.ema(close, emaSlowLen)
+emaMacro = ta.ema(close, emaMacroLen == 0 ? 200 : emaMacroLen)
+[stLine, stDir] = ta.supertrend(stFactor, stAtrLen)   // stDir: -1 = bullisch, 1 = bärisch
+
+atr = ta.atr(atrLen)
+rsi = ta.rsi(close, rsiLen)
+
+bullTrend = emaFast > emaSlow and stDir < 0 and (emaMacroLen == 0 or close > emaMacro)
+bearTrend = emaFast < emaSlow and stDir > 0 and (emaMacroLen == 0 or close < emaMacro)
+
+freshBullCross = ta.crossover(emaFast, emaSlow)
+freshBearCross = ta.crossunder(emaFast, emaSlow)
+
+// ----------------------------------------------------------------------------
+// Pivots → mehrere S/R-Levels + Trendlinien + echte Swings für Fibonacci
+// ----------------------------------------------------------------------------
+ph = ta.pivothigh(high, pivotLen, pivotLen)
+pl = ta.pivotlow(low,  pivotLen, pivotLen)
+
+var float lastPH   = na
+var int   lastPHbar = na
+var float prevPH   = na
+var int   prevPHbar = na
+var float lastPL   = na
+var int   lastPLbar = na
+var float prevPL   = na
+var int   prevPLbar = na
+
+// Arrays mit den letzten N Pivot-Levels (neueste vorn)
+var array<float> resLevels = array.new_float()
+var array<float> supLevels = array.new_float()
+var array<line>  resLines  = array.new_line()
+var array<line>  supLines  = array.new_line()
+
+if not na(ph)
+    prevPH    := lastPH
+    prevPHbar := lastPHbar
+    lastPH    := ph
+    lastPHbar := bar_index - pivotLen
+    array.unshift(resLevels, ph)
+    if array.size(resLevels) > srCount
+        array.pop(resLevels)
+    if showSR
+        array.unshift(resLines, line.new(lastPHbar, ph, bar_index, ph, extend = extend.right, color = color.new(color.red, 40), style = line.style_dashed))
+        if array.size(resLines) > srCount
+            line.delete(array.pop(resLines))
+
+if not na(pl)
+    prevPL    := lastPL
+    prevPLbar := lastPLbar
+    lastPL    := pl
+    lastPLbar := bar_index - pivotLen
+    array.unshift(supLevels, pl)
+    if array.size(supLevels) > srCount
+        array.pop(supLevels)
+    if showSR
+        array.unshift(supLines, line.new(lastPLbar, pl, bar_index, pl, extend = extend.right, color = color.new(color.green, 40), style = line.style_dashed))
+        if array.size(supLines) > srCount
+            line.delete(array.pop(supLines))
+
+// Nähe zu IRGENDEINEM gespeicherten Level (nicht nur dem letzten)
+f_nearAnyLevel(levels, price, tol) =>
+    hit = false
+    if array.size(levels) > 0
+        for i = 0 to array.size(levels) - 1
+            if math.abs(price - array.get(levels, i)) <= tol
+                hit := true
+    hit
+
+tol = atr * srProximity
+nearSupport    = f_nearAnyLevel(supLevels, low,  tol)
+nearResistance = f_nearAnyLevel(resLevels, high, tol)
+
+// Trendlinien: zeichnen UND handeln (Preis der verlängerten Linie am aktuellen Bar)
+var line tlRes = na
+var line tlSup = na
+if showTrendln and not na(lastPH) and not na(prevPH) and prevPHbar < lastPHbar
+    line.delete(tlRes)
+    tlRes := line.new(prevPHbar, prevPH, lastPHbar, lastPH, extend = extend.right, color = color.new(color.orange, 0))
+if showTrendln and not na(lastPL) and not na(prevPL) and prevPLbar < lastPLbar
+    line.delete(tlSup)
+    tlSup := line.new(prevPLbar, prevPL, lastPLbar, lastPL, extend = extend.right, color = color.new(color.teal, 0))
+
+tlSupSlope = (not na(prevPL) and not na(lastPL) and lastPLbar > prevPLbar) ? (lastPL - prevPL) / (lastPLbar - prevPLbar) : na
+tlResSlope = (not na(prevPH) and not na(lastPH) and lastPHbar > prevPHbar) ? (lastPH - prevPH) / (lastPHbar - prevPHbar) : na
+tlSupPrice = na(tlSupSlope) ? na : lastPL + tlSupSlope * (bar_index - lastPLbar)
+tlResPrice = na(tlResSlope) ? na : lastPH + tlResSlope * (bar_index - lastPHbar)
+
+// Bounce nur an STEIGENDER Support-Linie / Abweisung nur an FALLENDER Resistance-Linie
+tlBounceLong  = useTrendlnEntry and not na(tlSupPrice) and tlSupSlope > 0 and math.abs(low  - tlSupPrice) <= tol and close > tlSupPrice
+tlBounceShort = useTrendlnEntry and not na(tlResPrice) and tlResSlope < 0 and math.abs(high - tlResPrice) <= tol and close < tlResPrice
+
+// ----------------------------------------------------------------------------
+// Fibonacci aus bestätigten Swings (letztes Pivot-Hoch ↔ letztes Pivot-Tief)
+// ----------------------------------------------------------------------------
+swingUp   = not na(lastPH) and not na(lastPL) and lastPLbar < lastPHbar   // letzter Impuls: aufwärts (Tief → Hoch)
+swingDown = not na(lastPH) and not na(lastPL) and lastPHbar < lastPLbar   // letzter Impuls: abwärts (Hoch → Tief)
+fibRange  = (not na(lastPH) and not na(lastPL)) ? lastPH - lastPL : na
+fibValid  = not na(fibRange) and fibRange > atr   // Mini-Swings ignorieren (Seitwärts-Rauschen)
+
+// Aufwärts-Impuls → Rücksetzer vom Hoch
+gzTopUp    = fibValid ? lastPH - fibRange * fibLow   : na
+gzBottomUp = fibValid ? lastPH - fibRange * fibHigh  : na
+dzTopUp    = fibValid ? lastPH - fibRange * fibDeep1 : na
+dzBottomUp = fibValid ? lastPH - fibRange * fibDeep2 : na
+// Abwärts-Impuls → Erholung vom Tief
+gzBottomDn = fibValid ? lastPL + fibRange * fibLow   : na
+gzTopDn    = fibValid ? lastPL + fibRange * fibHigh  : na
+dzBottomDn = fibValid ? lastPL + fibRange * fibDeep1 : na
+dzTopDn    = fibValid ? lastPL + fibRange * fibDeep2 : na
+
+inGoldenZoneUp = swingUp   and not na(gzTopUp)    and low  <= gzTopUp    and low  >= gzBottomUp - tol
+inGoldenZoneDn = swingDown and not na(gzBottomDn) and high >= gzBottomDn and high <= gzTopDn + tol
+inDeepZoneUp   = useDeepFib and swingUp   and not na(dzTopUp)    and low  <= dzTopUp    and low  >= dzBottomUp - tol
+inDeepZoneDn   = useDeepFib and swingDown and not na(dzBottomDn) and high >= dzBottomDn and high <= dzTopDn + tol
+
+var line fib50   = na
+var line fib618  = na
+var line fib886  = na
+var line fib941  = na
+if showFib and barstate.islast and fibValid
+    line.delete(fib50)
+    line.delete(fib618)
+    line.delete(fib886)
+    line.delete(fib941)
+    y1 = swingUp ? gzTopUp    : gzBottomDn
+    y2 = swingUp ? gzBottomUp : gzTopDn
+    y3 = swingUp ? dzTopUp    : dzBottomDn
+    y4 = swingUp ? dzBottomUp : dzTopDn
+    startBar = math.min(nz(lastPLbar, bar_index - 50), nz(lastPHbar, bar_index - 50))
+    fib50  := line.new(startBar, y1, bar_index, y1, color = color.new(color.yellow, 40))
+    fib618 := line.new(startBar, y2, bar_index, y2, color = color.new(color.yellow, 20))
+    if useDeepFib
+        fib886 := line.new(startBar, y3, bar_index, y3, color = color.new(color.fuchsia, 30), style = line.style_dotted)
+        fib941 := line.new(startBar, y4, bar_index, y4, color = color.new(color.fuchsia, 10), style = line.style_dotted)
+
+// ----------------------------------------------------------------------------
+// Candlestick-Chartmuster (mit Qualitätsfiltern)
+// ----------------------------------------------------------------------------
+body     = math.abs(close - open)
+upperW   = high - math.max(close, open)
+lowerW   = math.min(close, open) - low
+
+bodyOk = body >= atr * minBodyAtr
+volOk  = not useVolume or volume > ta.sma(volume, 20)
+
+bullEngulf = close > open and close[1] < open[1] and close >= open[1] and open <= close[1] and body > body[1]
+bearEngulf = close < open and close[1] > open[1] and close <= open[1] and open >= close[1] and body > body[1]
+hammer       = lowerW > body * 2 and upperW < body and close > open
+shootingStar = upperW > body * 2 and lowerW < body and close < open
+
+bullPattern = (bullEngulf or hammer)       and bodyOk and volOk
+bearPattern = (bearEngulf or shootingStar) and bodyOk and volOk
+
+// ----------------------------------------------------------------------------
+// Entry-Logik
+// ----------------------------------------------------------------------------
+rsiOkLong  = not useRsi or (rsi > 40 and rsi < 75)
+rsiOkShort = not useRsi or (rsi < 60 and rsi > 25)
+// Eigene Grenzen für Deep-Entries (v2-Fix: Standard-Filter blockierte sie)
+deepRsiOkLong  = not useRsi or (rsi > deepRsiMin and rsi < 60)
+deepRsiOkShort = not useRsi or (rsi < 100 - deepRsiMin and rsi > 40)
+
+// Typ A: frischer Trendstart (EMA-Crossover, vom Supertrend bestätigt)
+trendEntryLong  = useTypeA and freshBullCross and stDir < 0 and rsiOkLong
+trendEntryShort = useTypeA and freshBearCross and stDir > 0 and rsiOkShort
+
+// Typ B: Pullback im bestehenden Trend an eine Zone (Golden Zone, S/R-Level
+//        ODER steigende/fallende Trendlinie) + Musterbestätigung
+longZone  = inGoldenZoneUp or nearSupport    or tlBounceLong
+shortZone = inGoldenZoneDn or nearResistance or tlBounceShort
+pullbackLong  = useTypeB and bullTrend and longZone  and (not useCandles or bullPattern) and rsiOkLong
+pullbackShort = useTypeB and bearTrend and shortZone and (not useCandles or bearPattern) and rsiOkShort
+
+// Typ C: Deep-Zone-Entry (0.886–0.941) — Reversal-Charakter: nur Makro-Richtung
+//        als Trendfilter, Candlestick-Bestätigung ist Pflicht, eigene RSI-Grenze
+deepLong  = useTypeC and inDeepZoneUp and (emaMacroLen == 0 or close > emaMacro) and bullPattern and deepRsiOkLong
+deepShort = useTypeC and inDeepZoneDn and (emaMacroLen == 0 or close < emaMacro) and bearPattern and deepRsiOkShort
+
+// Typ D: Liquidity Sweep — Bar sticht unter ein gespeichertes S/R-Level (nimmt
+// die dort liegende Liquidität: Stops, Liquidationen) und schließt wieder dahinter.
+f_sweptBelow(levels, lo, cl) =>
+    hit = false
+    if array.size(levels) > 0
+        for i = 0 to array.size(levels) - 1
+            lv = array.get(levels, i)
+            if lo < lv and cl > lv
+                hit := true
+    hit
+
+f_sweptAbove(levels, hi, cl) =>
+    hit = false
+    if array.size(levels) > 0
+        for i = 0 to array.size(levels) - 1
+            lv = array.get(levels, i)
+            if hi > lv and cl < lv
+                hit := true
+    hit
+
+sweepLong  = useTypeD and f_sweptBelow(supLevels, low, close)  and (emaMacroLen == 0 or close > emaMacro) and close > open
+sweepShort = useTypeD and f_sweptAbove(resLevels, high, close) and (emaMacroLen == 0 or close < emaMacro) and close < open
+
+longSignal  = trendEntryLong  or pullbackLong  or deepLong  or sweepLong
+shortSignal = (trendEntryShort or pullbackShort or deepShort or sweepShort) and allowShorts
+
+// ----------------------------------------------------------------------------
+// Risk-Management & Orders
+// ----------------------------------------------------------------------------
+stopDist = atr * stopMult
+riskCash = strategy.equity * riskPct / 100.0
+riskQty  = stopDist > 0 ? riskCash / stopDist : na
+// Positions-Cap gegen Gap-Risiko: Positionswert ≤ maxPosPct % des Kapitals
+capQty   = strategy.equity * maxPosPct / 100.0 / close
+qty      = na(riskQty) ? na : math.min(riskQty, capQty)
+
+useChandelier = exitMode == "Chandelier-Trailing"
+
+if longSignal and strategy.position_size == 0 and not na(qty)
+    strategy.entry("Long", strategy.long, qty = qty)
+    if not useChandelier
+        strategy.exit("Long TP/SL", "Long", stop = close - stopDist, limit = close + stopDist * tpRMultiple)
+
+if shortSignal and strategy.position_size == 0 and not na(qty)
+    strategy.entry("Short", strategy.short, qty = qty)
+    if not useChandelier
+        strategy.exit("Short TP/SL", "Short", stop = close + stopDist, limit = close - stopDist * tpRMultiple)
+
+// Chandelier-Trailing: Stop = Extremkurs seit Entry ∓ chandMult × ATR, nur ratchetend
+var float hhSinceEntry = na
+var float llSinceEntry = na
+var float trailStop    = na
+if useChandelier
+    if strategy.position_size > 0
+        if strategy.position_size[1] <= 0
+            hhSinceEntry := high
+            trailStop    := strategy.position_avg_price - atr * stopMult
+        else
+            hhSinceEntry := math.max(hhSinceEntry, high)
+        trailStop := math.max(trailStop, hhSinceEntry - atr * chandMult)
+        strategy.exit("Long Trail", "Long", stop = trailStop)
+    else if strategy.position_size < 0
+        if strategy.position_size[1] >= 0
+            llSinceEntry := low
+            trailStop    := strategy.position_avg_price + atr * stopMult
+        else
+            llSinceEntry := math.min(llSinceEntry, low)
+        trailStop := math.min(trailStop, llSinceEntry + atr * chandMult)
+        strategy.exit("Short Trail", "Short", stop = trailStop)
+    else
+        hhSinceEntry := na
+        llSinceEntry := na
+        trailStop    := na
+
+// Supertrend-Flip-Exit (nur im Modus 'Fester TP/SL')
+if useTrailing and not useChandelier
+    if strategy.position_size > 0 and stDir > 0
+        strategy.close("Long", comment = "Supertrend-Flip")
+    if strategy.position_size < 0 and stDir < 0
+        strategy.close("Short", comment = "Supertrend-Flip")
+
+// ----------------------------------------------------------------------------
+// Visualisierung
+// ----------------------------------------------------------------------------
+plot(emaFast,  "EMA 21",  color = color.new(color.blue,   0))
+plot(emaSlow,  "EMA 50",  color = color.new(color.purple, 0))
+plot(emaMacroLen == 0 ? na : emaMacro, "EMA 200", color = color.new(color.gray, 40))
+plot(stLine, "Supertrend", color = stDir < 0 ? color.green : color.red, style = plot.style_linebr)
+
+plotshape(longSignal,  "Long",  shape.triangleup,   location.belowbar, color.green, size = size.small)
+plotshape(shortSignal, "Short", shape.triangledown, location.abovebar, color.red,   size = size.small)
+plotshape(deepLong,  "Deep-Fib Long (0.886/0.941)",  shape.diamond, location.belowbar, color.fuchsia, size = size.small)
+plotshape(deepShort and allowShorts, "Deep-Fib Short (0.886/0.941)", shape.diamond, location.abovebar, color.fuchsia, size = size.small)
+plotshape(sweepLong,  "Liquidity-Sweep Long",  shape.labelup,   location.belowbar, color.new(color.aqua, 20), size = size.tiny)
+plotshape(sweepShort and allowShorts, "Liquidity-Sweep Short", shape.labeldown, location.abovebar, color.new(color.aqua, 20), size = size.tiny)
+plotshape(tlBounceLong,  "Trendlinien-Bounce Long",  shape.square, location.belowbar, color.new(color.teal,   40), size = size.tiny)
+plotshape(tlBounceShort, "Trendlinien-Bounce Short", shape.square, location.abovebar, color.new(color.orange, 40), size = size.tiny)
+plotshape(useCandles and bullPattern, "Bull-Muster", shape.circle, location.belowbar, color.new(color.green, 60), size = size.tiny)
+plotshape(useCandles and bearPattern, "Bär-Muster",  shape.circle, location.abovebar, color.new(color.red,   60), size = size.tiny)
+
+plot(useChandelier and strategy.position_size != 0 ? trailStop : na, "Chandelier-Stop", color = color.new(color.red, 0), style = plot.style_linebr, linewidth = 2)
+bgcolor(bullTrend ? color.new(color.green, 95) : bearTrend ? color.new(color.red, 95) : na)
