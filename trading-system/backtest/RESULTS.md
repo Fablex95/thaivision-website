@@ -50,5 +50,56 @@ Vergangenheit am besten aussah. Seriöses Vorgehen: Typ-B-only als Hypothese auf
 einer Datenhälfte optimieren, auf der anderen validieren (Walk-Forward), und mehr
 Trades sammeln (weitere Märkte/längerer Zeitraum), bevor echtes Geld fließt.
 
+---
+
+# Walk-Forward-Validierung (Update)
+
+Vorgehen: Alle Varianten (Entry-Typen A/B/C einzeln und kombiniert, mit/ohne Shorts)
+liefen über den Gesamtzeitraum; die Trades wurden am 01.04.2024 in **In-Sample**
+(erste Hälfte) und **Out-of-Sample** (zweite Hälfte) geteilt. Nur was in BEIDEN
+Hälften funktioniert, gilt als belastbar.
+
+## Kernergebnisse
+
+| Konfiguration | In-Sample PF | Out-of-Sample PF | Urteil |
+|---|---|---|---|
+| **BTC 4h, long-only, A+B+C** | 1,19 (38 Tr.) | **1,19 (55 Tr.)** | ✅ stabil |
+| **BTC 4h, long-only, nur A** | 1,33 (28 Tr.) | **1,30 (39 Tr.)** | ✅ stabil |
+| **Gold 4h, long-only, A+B+C** | 1,19 (41 Tr.) | **1,17 (42 Tr.)** | ✅ stabil |
+| BTC 4h, nur B long | 1,97 | 0,83 | ❌ bricht zusammen |
+| Gold 4h, nur B long | 1,76 | 0,78 | ❌ bricht zusammen |
+| Alle „+Shorts"-Varianten | — | durchgehend schlechter | ❌ |
+| Alle 1D-Varianten | — | 1–9 Trades je Hälfte | ⚠️ zu wenig Trades |
+
+## Was das bedeutet
+
+1. **Shorts raus.** In jeder Konfiguration, auf beiden Märkten, in beiden Hälften
+   verschlechterten Shorts das Ergebnis. (Beide Märkte stiegen über den Zeitraum.)
+2. **4h statt 1D.** Auf Tagesbasis entstehen schlicht zu wenige Trades für
+   statistische Aussagekraft.
+3. **Die „Typ B ist der Gewinner"-Hypothese aus dem ersten Backtest ist
+   WIDERLEGT** — klassische Kleinstichproben-Täuschung: In-Sample PF 1,8–2,0,
+   Out-of-Sample 0,78–0,83. Genau dafür macht man Walk-Forward.
+4. **Was bleibt, ist ein bescheidener, aber stabiler Edge:** Long-only auf 4h
+   mit allen drei Entry-Typen (BTC auch mit Typ A allein).
+
+## Finale validierte Konfiguration (Gesamtzeitraum, long-only, 4h)
+
+| | BTC 4h | Gold 4h |
+|---|---|---|
+| Gesamtrendite (5 J., 1 % Risiko/Trade) | +10,2 % | +8,4 % |
+| Profit Factor | 1,19 | 1,18 |
+| Max. Drawdown | −9,1 % | −9,0 % |
+| Trades | 93 | 83 |
+
+**Ehrliche Einordnung:** ~2 % pro Jahr bei 1 % Risiko pro Trade und max. −9 %
+Drawdown. Der Edge ist real (in beiden Datenhälften stabil), aber klein. Höheres
+Risiko pro Trade skaliert Rendite UND Drawdown proportional (2 % Risiko ≈ ~4 %/Jahr
+bei ~−18 % DD). Buy & Hold war in diesem (stark steigenden) Zeitraum überlegen —
+der Vorteil des Systems ist der drastisch kleinere Drawdown, nicht die Rendite.
+
+Standard-Einstellungen des Pine Scripts wurden entsprechend angepasst:
+Shorts aus, Entry-Typen einzeln schaltbar, Empfehlung 4h.
+
 *Reproduzierbar via `python3 backtest.py <csv> BTC|GOLD` mit auf 4h/1D
 resampelten OHLCV-Daten.*

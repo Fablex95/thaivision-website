@@ -85,7 +85,9 @@ def supertrend(df: pd.DataFrame, factor: float, n: int):
     return pd.Series(st, df.index), pd.Series(direction, df.index)
 
 # ---------------------------------------------------------------- Backtest
-def backtest(df: pd.DataFrame, preset: str, label: str):
+def backtest(df: pd.DataFrame, preset: str, label: str,
+             entry_types=("A", "B", "C"), allow_shorts=None, quiet=False):
+    allow_shorts = ALLOW_SHORTS if allow_shorts is None else allow_shorts
     st_factor, stop_mult, tp_r = PRESETS[preset]
     df = df.copy()
     df["ema_f"] = ema(df.Close, EMA_FAST)
@@ -151,7 +153,8 @@ def backtest(df: pd.DataFrame, preset: str, label: str):
                 equity += pnl - fees
                 trades.append({"etype": pos["etype"], "dir": pos["dir"],
                                "pnl": pnl - fees, "reason": reason,
-                               "bars": i - pos["entry_bar"]})
+                               "bars": i - pos["entry_bar"],
+                               "date": df.index[pos["entry_bar"]]})
                 pos = None
 
         # ---- Gestern signalisierter Entry → Fill zum heutigen Open
@@ -229,17 +232,17 @@ def backtest(df: pd.DataFrame, preset: str, label: str):
 
         stop_dist = a[i] * stop_mult
         sig = None
-        if cross_up and stdir[i] == -1 and rsi_l:
+        if "A" in entry_types and cross_up and stdir[i] == -1 and rsi_l:
             sig = (1, "A-Trend")
-        elif bull and (in_gz_up or near_sup or tl_long) and bull_pat and rsi_l:
+        elif "B" in entry_types and bull and (in_gz_up or near_sup or tl_long) and bull_pat and rsi_l:
             sig = (1, "B-Pullback")
-        elif in_dz_up and c[i] > emam[i] and bull_pat and deep_l:
+        elif "C" in entry_types and in_dz_up and c[i] > emam[i] and bull_pat and deep_l:
             sig = (1, "C-DeepFib")
-        elif ALLOW_SHORTS and cross_dn and stdir[i] == 1 and rsi_s:
+        elif allow_shorts and "A" in entry_types and cross_dn and stdir[i] == 1 and rsi_s:
             sig = (-1, "A-Trend")
-        elif ALLOW_SHORTS and bear and (in_gz_dn or near_res or tl_short) and bear_pat and rsi_s:
+        elif allow_shorts and "B" in entry_types and bear and (in_gz_dn or near_res or tl_short) and bear_pat and rsi_s:
             sig = (-1, "B-Pullback")
-        elif ALLOW_SHORTS and in_dz_dn and c[i] < emam[i] and bear_pat and deep_s:
+        elif allow_shorts and "C" in entry_types and in_dz_dn and c[i] < emam[i] and bear_pat and deep_s:
             sig = (-1, "C-DeepFib")
         if sig:
             pending = (sig[0], sig[1], stop_dist)
@@ -250,31 +253,43 @@ def backtest(df: pd.DataFrame, preset: str, label: str):
         fees = (pos["entry"] + c[-1]) * pos["qty"] * COMMISSION
         equity += pnl - fees
         trades.append({"etype": pos["etype"], "dir": pos["dir"],
-                       "pnl": pnl - fees, "reason": "open-end", "bars": n - 1 - pos["entry_bar"]})
+                       "pnl": pnl - fees, "reason": "open-end",
+                       "bars": n - 1 - pos["entry_bar"],
+                       "date": df.index[pos["entry_bar"]]})
     eq_curve[-1] = equity
 
-    report(label, preset, df, trades, eq_curve)
+    return report(label, preset, df, trades, eq_curve, quiet=quiet)
 
-def report(label, preset, df, trades, eq):
+def metrics(trades: pd.DataFrame) -> dict:
+    """PF, Winrate, Anzahl und Netto-PnL einer Trade-Menge."""
+    if trades.empty:
+        return {"n": 0, "win": float("nan"), "pf": float("nan"), "pnl": 0.0}
+    wins, losses = trades[trades.pnl > 0], trades[trades.pnl <= 0]
+    pf = wins.pnl.sum() / abs(losses.pnl.sum()) if len(losses) and losses.pnl.sum() != 0 else float("inf")
+    return {"n": len(trades), "win": len(wins) / len(trades), "pf": pf, "pnl": trades.pnl.sum()}
+
+def report(label, preset, df, trades, eq, quiet=False):
     t = pd.DataFrame(trades)
     years = (df.index[-1] - df.index[0]).days / 365.25
-    total_ret = eq[-1] / START_EQUITY - 1
-    cagr = (eq[-1] / START_EQUITY) ** (1 / years) - 1 if years > 0 else float("nan")
     peak = np.maximum.accumulate(eq)
-    maxdd = ((eq - peak) / peak).min()
+    out = {"label": label, "trades": t, "equity": eq,
+           "total_ret": eq[-1] / START_EQUITY - 1,
+           "cagr": (eq[-1] / START_EQUITY) ** (1 / years) - 1 if years > 0 else float("nan"),
+           "maxdd": ((eq - peak) / peak).min(),
+           **metrics(t)}
+    if quiet:
+        return out
     bh = df.Close.iloc[-1] / df.Close.iloc[0] - 1
     print(f"\n{'=' * 64}\n{label}  (Preset {preset})   {df.index[0].date()} – {df.index[-1].date()}")
     print(f"{'=' * 64}")
     if t.empty:
         print("KEINE TRADES — Logik/Filter prüfen!")
-        return
-    wins, losses = t[t.pnl > 0], t[t.pnl <= 0]
-    pf = wins.pnl.sum() / abs(losses.pnl.sum()) if len(losses) and losses.pnl.sum() != 0 else float("inf")
+        return out
     print(f"Endkapital:     {eq[-1]:>12,.0f} USD  (Start {START_EQUITY:,.0f})")
-    print(f"Gesamtrendite:  {total_ret:>12.1%}   Buy&Hold: {bh:.1%}")
-    print(f"CAGR:           {cagr:>12.1%}")
-    print(f"Max. Drawdown:  {maxdd:>12.1%}")
-    print(f"Trades: {len(t)}   Trefferquote: {len(wins) / len(t):.1%}   Profit Factor: {pf:.2f}")
+    print(f"Gesamtrendite:  {out['total_ret']:>12.1%}   Buy&Hold: {bh:.1%}")
+    print(f"CAGR:           {out['cagr']:>12.1%}")
+    print(f"Max. Drawdown:  {out['maxdd']:>12.1%}")
+    print(f"Trades: {out['n']}   Trefferquote: {out['win']:.1%}   Profit Factor: {out['pf']:.2f}")
     print(f"Ø Haltedauer:   {t.bars.mean():.1f} Bars")
     print("\nNach Entry-Typ:")
     for et, g in t.groupby("etype"):
@@ -282,6 +297,7 @@ def report(label, preset, df, trades, eq):
         gpf = g[g.pnl > 0].pnl.sum() / abs(g[g.pnl <= 0].pnl.sum()) if (g.pnl <= 0).any() and g[g.pnl <= 0].pnl.sum() != 0 else float("inf")
         print(f"  {et:<12} {len(g):>4} Trades | Winrate {w / len(g):>6.1%} | PF {gpf:>5.2f} | PnL {g.pnl.sum():>+10,.0f} USD")
     print("\nExit-Gründe:", dict(t.reason.value_counts()))
+    return out
 
 def load(symbol_or_csv: str, name: str) -> pd.DataFrame:
     if symbol_or_csv.endswith(".csv"):

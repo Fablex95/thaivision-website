@@ -60,7 +60,11 @@ emaSlowLen   = input.int(50,  "EMA langsam", minval = 2, group = grpTrend)
 emaMacroLen  = input.int(200, "EMA Makro-Filter (0 = aus)", minval = 0, group = grpTrend)
 stAtrLen     = input.int(10,  "Supertrend ATR-Länge", group = grpTrend)
 stFactorIn   = input.float(3.0, "Supertrend Faktor (Manuell)", step = 0.1, group = grpTrend)
-allowShorts  = input.bool(true, "Shorts erlauben", group = grpTrend)
+allowShorts  = input.bool(false, "Shorts erlauben", group = grpTrend,
+     tooltip = "Walk-Forward 2021–2026 (BTC & Gold): Shorts verschlechterten das Ergebnis in beiden Datenhälften durchgehend. Standard daher: aus.")
+useTypeA     = input.bool(true, "Entry-Typ A: Trendstart (EMA-Crossover)", group = grpTrend)
+useTypeB     = input.bool(true, "Entry-Typ B: Pullback (Fib/SR/Trendlinie)", group = grpTrend)
+useTypeC     = input.bool(true, "Entry-Typ C: Deep-Fib (0.886–0.941)", group = grpTrend)
 
 grpPivot  = "Support/Resistance & Trendlinien"
 pivotLen     = input.int(10, "Pivot-Länge (links/rechts)", minval = 2, group = grpPivot)
@@ -270,20 +274,20 @@ deepRsiOkLong  = not useRsi or (rsi > deepRsiMin and rsi < 60)
 deepRsiOkShort = not useRsi or (rsi < 100 - deepRsiMin and rsi > 40)
 
 // Typ A: frischer Trendstart (EMA-Crossover, vom Supertrend bestätigt)
-trendEntryLong  = freshBullCross and stDir < 0 and rsiOkLong
-trendEntryShort = freshBearCross and stDir > 0 and rsiOkShort
+trendEntryLong  = useTypeA and freshBullCross and stDir < 0 and rsiOkLong
+trendEntryShort = useTypeA and freshBearCross and stDir > 0 and rsiOkShort
 
 // Typ B: Pullback im bestehenden Trend an eine Zone (Golden Zone, S/R-Level
 //        ODER steigende/fallende Trendlinie) + Musterbestätigung
 longZone  = inGoldenZoneUp or nearSupport    or tlBounceLong
 shortZone = inGoldenZoneDn or nearResistance or tlBounceShort
-pullbackLong  = bullTrend and longZone  and (not useCandles or bullPattern) and rsiOkLong
-pullbackShort = bearTrend and shortZone and (not useCandles or bearPattern) and rsiOkShort
+pullbackLong  = useTypeB and bullTrend and longZone  and (not useCandles or bullPattern) and rsiOkLong
+pullbackShort = useTypeB and bearTrend and shortZone and (not useCandles or bearPattern) and rsiOkShort
 
 // Typ C: Deep-Zone-Entry (0.886–0.941) — Reversal-Charakter: nur Makro-Richtung
 //        als Trendfilter, Candlestick-Bestätigung ist Pflicht, eigene RSI-Grenze
-deepLong  = inDeepZoneUp and (emaMacroLen == 0 or close > emaMacro) and bullPattern and deepRsiOkLong
-deepShort = inDeepZoneDn and (emaMacroLen == 0 or close < emaMacro) and bearPattern and deepRsiOkShort
+deepLong  = useTypeC and inDeepZoneUp and (emaMacroLen == 0 or close > emaMacro) and bullPattern and deepRsiOkLong
+deepShort = useTypeC and inDeepZoneDn and (emaMacroLen == 0 or close < emaMacro) and bearPattern and deepRsiOkShort
 
 longSignal  = trendEntryLong  or pullbackLong  or deepLong
 shortSignal = (trendEntryShort or pullbackShort or deepShort) and allowShorts
