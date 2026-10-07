@@ -65,6 +65,8 @@ allowShorts  = input.bool(false, "Shorts erlauben", group = grpTrend,
 useTypeA     = input.bool(true, "Entry-Typ A: Trendstart (EMA-Crossover)", group = grpTrend)
 useTypeB     = input.bool(true, "Entry-Typ B: Pullback (Fib/SR/Trendlinie)", group = grpTrend)
 useTypeC     = input.bool(true, "Entry-Typ C: Deep-Fib (0.886–0.941)", group = grpTrend)
+useTypeD     = input.bool(false, "Entry-Typ D: Liquidity Sweep (Stop-Hunt-Reversal)", group = grpTrend,
+     tooltip = "Bar sticht unter ein gespeichertes Support-Level (holt dort liegende Stops/Liquidationen) und schließt wieder darüber. Walk-Forward: alleinstehend stabil profitabel (PF 1.35–1.51, Gold mit nur −6.6% DD), ABER ins Hauptsystem gemischt verschlechtert er BTC (+28% statt +41%), weil er Positionen vor besseren A/B/C-Signalen besetzt. Standard daher: aus — für Experimente oder als Standalone (A/B/C aus) aktivieren.")
 
 grpPivot  = "Support/Resistance & Trendlinien"
 pivotLen     = input.int(10, "Pivot-Länge (links/rechts)", minval = 2, group = grpPivot)
@@ -292,8 +294,31 @@ pullbackShort = useTypeB and bearTrend and shortZone and (not useCandles or bear
 deepLong  = useTypeC and inDeepZoneUp and (emaMacroLen == 0 or close > emaMacro) and bullPattern and deepRsiOkLong
 deepShort = useTypeC and inDeepZoneDn and (emaMacroLen == 0 or close < emaMacro) and bearPattern and deepRsiOkShort
 
-longSignal  = trendEntryLong  or pullbackLong  or deepLong
-shortSignal = (trendEntryShort or pullbackShort or deepShort) and allowShorts
+// Typ D: Liquidity Sweep — Bar sticht unter ein gespeichertes S/R-Level (nimmt
+// die dort liegende Liquidität: Stops, Liquidationen) und schließt wieder dahinter.
+f_sweptBelow(levels, lo, cl) =>
+    hit = false
+    if array.size(levels) > 0
+        for i = 0 to array.size(levels) - 1
+            lv = array.get(levels, i)
+            if lo < lv and cl > lv
+                hit := true
+    hit
+
+f_sweptAbove(levels, hi, cl) =>
+    hit = false
+    if array.size(levels) > 0
+        for i = 0 to array.size(levels) - 1
+            lv = array.get(levels, i)
+            if hi > lv and cl < lv
+                hit := true
+    hit
+
+sweepLong  = useTypeD and f_sweptBelow(supLevels, low, close)  and (emaMacroLen == 0 or close > emaMacro) and close > open
+sweepShort = useTypeD and f_sweptAbove(resLevels, high, close) and (emaMacroLen == 0 or close < emaMacro) and close < open
+
+longSignal  = trendEntryLong  or pullbackLong  or deepLong  or sweepLong
+shortSignal = (trendEntryShort or pullbackShort or deepShort or sweepShort) and allowShorts
 
 // ----------------------------------------------------------------------------
 // Risk-Management & Orders
@@ -362,6 +387,8 @@ plotshape(longSignal,  "Long",  shape.triangleup,   location.belowbar, color.gre
 plotshape(shortSignal, "Short", shape.triangledown, location.abovebar, color.red,   size = size.small)
 plotshape(deepLong,  "Deep-Fib Long (0.886/0.941)",  shape.diamond, location.belowbar, color.fuchsia, size = size.small)
 plotshape(deepShort and allowShorts, "Deep-Fib Short (0.886/0.941)", shape.diamond, location.abovebar, color.fuchsia, size = size.small)
+plotshape(sweepLong,  "Liquidity-Sweep Long",  shape.labelup,   location.belowbar, color.new(color.aqua, 20), size = size.tiny)
+plotshape(sweepShort and allowShorts, "Liquidity-Sweep Short", shape.labeldown, location.abovebar, color.new(color.aqua, 20), size = size.tiny)
 plotshape(tlBounceLong,  "Trendlinien-Bounce Long",  shape.square, location.belowbar, color.new(color.teal,   40), size = size.tiny)
 plotshape(tlBounceShort, "Trendlinien-Bounce Short", shape.square, location.abovebar, color.new(color.orange, 40), size = size.tiny)
 plotshape(useCandles and bullPattern, "Bull-Muster", shape.circle, location.belowbar, color.new(color.green, 60), size = size.tiny)

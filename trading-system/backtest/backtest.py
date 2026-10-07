@@ -276,6 +276,15 @@ def backtest(df: pd.DataFrame, preset: str, label: str,
             sig = (-1, "B-Pullback")
         elif allow_shorts and "C" in entry_types and in_dz_dn and c[i] < emam[i] and bear_pat and deep_s:
             sig = (-1, "C-DeepFib")
+        # Typ D: Liquidity Sweep — Bar sticht unter ein bekanntes Support-Level
+        # (holt dort liegende Stops/Liquidationen ab) und schließt wieder darüber.
+        if sig is None and "D" in entry_types:
+            sweep_l = any(l[i] < lv and c[i] > lv for lv in sup_levels) and c[i] > emam[i] and c[i] > o[i]
+            sweep_s = any(h[i] > lv and c[i] < lv for lv in res_levels) and c[i] < emam[i] and c[i] < o[i]
+            if sweep_l:
+                sig = (1, "D-Sweep")
+            elif allow_shorts and sweep_s:
+                sig = (-1, "D-Sweep")
         if sig:
             pending = (sig[0], sig[1], stop_dist)
 

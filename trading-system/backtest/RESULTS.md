@@ -137,5 +137,30 @@ Zum Vergleich Startpunkt (v2, fester TP/SL, mit Shorts): BTC +12 %, Gold −19 %
 Die Out-of-Sample-PFs (1,39–1,45) sind die realistischere Erwartung als die
 In-Sample-Werte (2,0–2,6) — mit Live-Ergebnissen eher am unteren Rand rechnen.
 
+---
+
+# Liquidity-Sweep-Studie (Update 3)
+
+Frage: Hilft ein „Liquiditäts"-Konzept (Preis holt Stops/Liquidationen unter
+Swing-Tiefs, Stop-Hunt-Reversal)? Echte Liquidation-Heatmaps (Coinglass etc.)
+sind in TradingView nicht verfügbar; getestet wurde der handelbare Kern:
+Bar sticht unter ein gespeichertes Support-Level und schließt wieder darüber.
+
+| Konfiguration (4h, long-only, Chandelier) | IS PF | OOS PF | Gesamt 5J | Max-DD |
+|---|---|---|---|---|
+| BTC — ABC (Hauptsystem) | 2,62 | 1,45 | +41,1 % | −9,7 % |
+| BTC — ABC + D gemischt | 1,64 | 1,18 | +28,3 % ❌ | −12,4 % |
+| BTC — nur D (Sweep standalone) | 1,35 | 1,46 ✅ | +18,7 % | −9,4 % |
+| Gold — ABC (Hauptsystem) | 2,07 | 1,39 | +28,7 % | −10,0 % |
+| Gold — ABC + D gemischt | 1,77 | 1,30 | +33,5 % ⚠️ | −11,7 % |
+| Gold — nur D (Sweep standalone) | 1,42 | 1,51 ✅ | +20,6 % | **−6,6 %** |
+
+**Befund:** Das Sweep-Konzept trägt alleinstehend einen echten, in beiden Hälften
+stabilen Edge (auf Gold sogar mit dem besten Drawdown aller Varianten). Ins
+Hauptsystem gemischt verschlechtert es BTC aber deutlich, weil Sweep-Trades
+Positionen besetzen, bevor die stärkeren A/B/C-Signale feuern. Konsequenz:
+Typ D ist im Pine Script enthalten, aber **standardmäßig aus** — sinnvoll als
+Standalone-Variante (A/B/C aus) oder zum Experimentieren, nicht im Mix.
+
 *Reproduzierbar via `python3 backtest.py <csv> BTC|GOLD` mit auf 4h/1D
 resampelten OHLCV-Daten.*
