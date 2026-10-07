@@ -87,18 +87,27 @@ def supertrend(df: pd.DataFrame, factor: float, n: int):
 # ---------------------------------------------------------------- Backtest
 def backtest(df: pd.DataFrame, preset: str, label: str,
              entry_types=("A", "B", "C"), allow_shorts=None, quiet=False,
-             exit_mode="fixed"):
+             exit_mode="fixed", chand_mult=3.0, carry_pct_yr=0.0,
+             random_p=None, random_seed=0,
+             ema_fast=EMA_FAST, ema_slow=EMA_SLOW, st_factor=None):
     """exit_mode:
     fixed      — 2-ATR-Stop + R-Multiple-TP + Supertrend-Flip (v2-Standard)
     st_trail   — Initial-Stop, dann Stop ratchet auf Supertrend-Linie; kein TP
-    chandelier — Initial-Stop, dann Trail: Höchstkurs seit Entry − 3 ATR; kein TP, kein Flip
+    chandelier — Initial-Stop, dann Trail: Höchstkurs seit Entry − chand_mult·ATR
     breakeven  — wie fixed, zusätzlich Stop auf Einstand nach +1R
+
+    carry_pct_yr: Halte-/Finanzierungskosten (Funding, Swap) in % p.a. auf den
+    Positionswert. random_p: ersetzt die Entry-Logik durch Zufalls-Longs mit
+    dieser Wahrscheinlichkeit je flacher Bar (Baseline-Test).
     """
     allow_shorts = ALLOW_SHORTS if allow_shorts is None else allow_shorts
-    st_factor, stop_mult, tp_r = PRESETS[preset]
+    preset_factor, stop_mult, tp_r = PRESETS[preset]
+    st_factor = preset_factor if st_factor is None else st_factor
+    rng = np.random.default_rng(random_seed)
+    bar_hours = pd.Series(df.index).diff().dropna().median().total_seconds() / 3600
     df = df.copy()
-    df["ema_f"] = ema(df.Close, EMA_FAST)
-    df["ema_s"] = ema(df.Close, EMA_SLOW)
+    df["ema_f"] = ema(df.Close, ema_fast)
+    df["ema_s"] = ema(df.Close, ema_slow)
     df["ema_m"] = ema(df.Close, EMA_MACRO)
     df["atr"] = atr(df, ATR_LEN)
     df["rsi"] = rsi(df.Close, RSI_LEN)
@@ -117,6 +126,7 @@ def backtest(df: pd.DataFrame, preset: str, label: str,
     lastPH = prevPH = lastPL = prevPL = None  # (preis, bar)
     equity = START_EQUITY
     pos = None          # dict: dir, qty, entry, stop, tp, entry_bar, etype
+    in_market = 0
     trades = []
     eq_curve = np.full(n, START_EQUITY)
     pending = None      # Signal von gestern → Fill heute zum Open
@@ -145,9 +155,9 @@ def backtest(df: pd.DataFrame, preset: str, label: str,
                     pos["stop"] = min(pos["stop"], stline[i - 1])
             elif exit_mode == "chandelier":
                 if d == 1:
-                    pos["stop"] = max(pos["stop"], pos["hh"] - 3 * a[i - 1])
+                    pos["stop"] = max(pos["stop"], pos["hh"] - chand_mult * a[i - 1])
                 else:
-                    pos["stop"] = min(pos["stop"], pos["ll"] + 3 * a[i - 1])
+                    pos["stop"] = min(pos["stop"], pos["ll"] + chand_mult * a[i - 1])
             elif exit_mode == "breakeven":
                 if d == 1 and pos["hh"] >= pos["entry"] + pos["r"]:
                     pos["stop"] = max(pos["stop"], pos["entry"])
@@ -178,6 +188,8 @@ def backtest(df: pd.DataFrame, preset: str, label: str,
             if exit_px is not None:
                 pnl = (exit_px - pos["entry"]) * pos["qty"] * pos["dir"]
                 fees = (pos["entry"] + exit_px) * pos["qty"] * COMMISSION
+                hold_bars = i - pos["entry_bar"]
+                fees += pos["entry"] * pos["qty"] * carry_pct_yr / 100 * hold_bars * bar_hours / 8766
                 equity += pnl - fees
                 trades.append({"etype": pos["etype"], "dir": pos["dir"],
                                "pnl": pnl - fees, "reason": reason,
@@ -203,8 +215,16 @@ def backtest(df: pd.DataFrame, preset: str, label: str,
 
         # ---- Mark-to-Market-Equity für Drawdown
         eq_curve[i] = equity + ((c[i] - pos["entry"]) * pos["qty"] * pos["dir"] if pos else 0)
+        if pos is not None:
+            in_market += 1
 
         if i < max(EMA_MACRO, 2 * PIVOT_LEN) or math.isnan(a[i]) or pos is not None:
+            continue
+
+        # ---- Zufalls-Baseline: ersetzt die gesamte Entry-Logik
+        if random_p is not None:
+            if rng.random() < random_p:
+                pending = (1, "R-Random", a[i] * stop_mult)
             continue
 
         # ---- Signal-Logik (Bar i, Fill morgen)
@@ -292,6 +312,7 @@ def backtest(df: pd.DataFrame, preset: str, label: str,
     if pos is not None:
         pnl = (c[-1] - pos["entry"]) * pos["qty"] * pos["dir"]
         fees = (pos["entry"] + c[-1]) * pos["qty"] * COMMISSION
+        fees += pos["entry"] * pos["qty"] * carry_pct_yr / 100 * (n - 1 - pos["entry_bar"]) * bar_hours / 8766
         equity += pnl - fees
         trades.append({"etype": pos["etype"], "dir": pos["dir"],
                        "pnl": pnl - fees, "reason": "open-end",
@@ -299,7 +320,9 @@ def backtest(df: pd.DataFrame, preset: str, label: str,
                        "date": df.index[pos["entry_bar"]]})
     eq_curve[-1] = equity
 
-    return report(label, preset, df, trades, eq_curve, quiet=quiet)
+    out = report(label, preset, df, trades, eq_curve, quiet=quiet)
+    out["time_in_market"] = in_market / n
+    return out
 
 def metrics(trades: pd.DataFrame) -> dict:
     """PF, Winrate, Anzahl und Netto-PnL einer Trade-Menge."""

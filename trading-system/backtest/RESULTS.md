@@ -162,5 +162,65 @@ Positionen besetzen, bevor die stärkeren A/B/C-Signale feuern. Konsequenz:
 Typ D ist im Pine Script enthalten, aber **standardmäßig aus** — sinnvoll als
 Standalone-Variante (A/B/C aus) oder zum Experimentieren, nicht im Mix.
 
+---
+
+# Validierungs-Studien (Update 4)
+
+## a) Zufalls-Entry-Baseline — der wichtigste Test
+
+Zufällige Long-Einstiege mit identischem Exit (Chandelier), Risiko und
+Trade-Häufigkeit, 80 Durchläufe je Markt:
+
+| | Zufall (Median) | System | System schlägt … der Zufallsläufe |
+|---|---|---|---|
+| BTC | +21,3 % (PF 1,36) | +41,1 % (PF 1,75) | 81 % ⚠️ |
+| Gold | +8,4 % (PF 1,21) | +28,7 % (PF 1,67) | **98 % ✅** |
+
+**Ernüchternde Ehrlichkeit für BTC:** Auch Zufalls-Entries verdienten im
+Testzeitraum mit diesem Exit Geld (Median +21 %). Das System liegt nur auf dem
+81. Perzentil — statistisch NICHT signifikant besser als Zufall. Ein Großteil
+der BTC-Performance stammt also aus Marktrichtung + Exit-/Risk-Engine, nicht
+aus den Entry-Signalen. **Auf Gold dagegen schlagen die Entries 98 % der
+Zufallsläufe — dort liefern sie echten Mehrwert.**
+
+## b) Finanzierungskosten (BTC-Funding 5 %/J, Gold-Swap 3 %/J)
+
+Dank nur 12–18 % Zeit im Markt geringer Effekt: BTC +41,1 % → +38,9 %,
+Gold +28,7 % → +26,5 %. Kein Dealbreaker.
+
+## c) Parameter-Sensitivität (Chandelier × Supertrend, volle Periode)
+
+- **BTC: ordentliches Plateau** um Chandelier 2,5–3,0 / Supertrend 3,0–3,5
+  (+31 … +46 %). Nur Chandelier 2,0 bricht ein. → Standardwerte robust.
+- **Gold: kein sauberes Plateau** — Ergebnisse springen (+12 % … +36 %) ohne
+  klares Muster. Die Gold-Zahlen sind daher mit größerer Unsicherheit zu lesen.
+- EMA-Paare: Gold unempfindlich (28–31 %). BTC zeigte volle Periode 30/70 besser
+  (+53,6 %, PF 2,12) als 21/50 — **nicht übernommen**, da Auswahl auf Basis der
+  Gesamtperiode (inkl. verbrauchter OOS-Hälfte) klassisches Curve-Fitting wäre.
+
+## d) System light (nur Entry A + Chandelier)
+
+| | Rendite | PF | Max-DD | Trades |
+|---|---|---|---|---|
+| BTC A-only | +34,3 % | **2,17** | **−6,8 %** | 67 |
+| BTC ABC | +41,1 % | 1,75 | −9,7 % | 99 |
+| Gold A-only | +17,5 % | 1,58 | −9,0 % | 57 |
+| Gold ABC | +28,7 % | 1,67 | −10,0 % | 80 |
+
+Auf BTC ist das Ein-Signal-System die sauberere Wahl (bester PF und DD aller
+Varianten); auf Gold tragen B/C echten Mehrwert bei (konsistent mit der
+Zufalls-Baseline: Golds Entries sind die wertvolleren).
+
+## Gesamtfazit nach allen Studien
+
+Der Werttreiber des Systems ist die **Exit-/Risk-Engine**; die Entries liefern
+auf Gold nachweisbaren, auf BTC nicht gesicherten Mehrwert. Kosten sind
+verkraftbar, BTC-Parameter robust, Gold-Parameter wackeliger als die nominalen
+Zahlen suggerieren. Realistische Netto-Erwartung bei 1 % Risiko/Trade:
+**~4–6 %/Jahr mit Drawdowns um −10 %** — unter der Voraussetzung, dass sich die
+Trendcharakteristik der Märkte nicht grundlegend ändert. Nächster sinnvoller
+Schritt bleibt: **einfrieren und 3–6 Monate Paper-Trading** (plus optional:
+Pine-vs-Python-Abgleich in TradingView und Test auf unberührten Märkten).
+
 *Reproduzierbar via `python3 backtest.py <csv> BTC|GOLD` mit auf 4h/1D
 resampelten OHLCV-Daten.*
