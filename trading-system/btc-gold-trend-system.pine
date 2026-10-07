@@ -99,7 +99,10 @@ atrStopMult  = input.float(2.0, "Stop-Abstand (x ATR, Manuell)", step = 0.1, gro
 tpRMultipleIn = input.float(3.0, "Take-Profit in R (Manuell)", step = 0.5, group = grpRisk)
 maxPosPct    = input.float(100.0, "Max. Positionswert (% vom Kapital)", minval = 10, maxval = 300, step = 10, group = grpRisk,
      tooltip = "Cap gegen Gap-Risiko: Begrenzt den Positionswert unabhängig vom Stop-Abstand. 100 % = kein Hebel. Wichtig für Gold (Wochenend-Gaps können Stops überspringen).")
-useTrailing  = input.bool(true, "Supertrend als Trailing-Stop", group = grpRisk)
+useTrailing  = input.bool(true, "Supertrend-Flip-Exit (nur Modus 'Fester TP/SL')", group = grpRisk)
+exitMode     = input.string("Chandelier-Trailing", "Exit-Modus", options = ["Chandelier-Trailing", "Fester TP/SL"], group = grpRisk,
+     tooltip = "Walk-Forward 2021–2026 (BTC & Gold, 4h): Chandelier-Trailing (Stop = Höchstkurs seit Entry − 3×ATR, kein fester TP) schlug den festen TP/SL in beiden Datenhälften auf beiden Märkten deutlich (BTC +41% statt +10%, Gold +29% statt +8% bei ~gleichem Drawdown).")
+chandMult    = input.float(3.0, "Chandelier-Abstand (x ATR)", step = 0.1, group = grpRisk)
 
 // Preset-Auflösung (Startwerte; Manuell = Eingaben oben)
 stFactor    = manualMode ? stFactorIn    : useGoldPreset ? 2.5 : 3.0
@@ -302,16 +305,46 @@ riskQty  = stopDist > 0 ? riskCash / stopDist : na
 capQty   = strategy.equity * maxPosPct / 100.0 / close
 qty      = na(riskQty) ? na : math.min(riskQty, capQty)
 
+useChandelier = exitMode == "Chandelier-Trailing"
+
 if longSignal and strategy.position_size == 0 and not na(qty)
     strategy.entry("Long", strategy.long, qty = qty)
-    strategy.exit("Long TP/SL", "Long", stop = close - stopDist, limit = close + stopDist * tpRMultiple)
+    if not useChandelier
+        strategy.exit("Long TP/SL", "Long", stop = close - stopDist, limit = close + stopDist * tpRMultiple)
 
 if shortSignal and strategy.position_size == 0 and not na(qty)
     strategy.entry("Short", strategy.short, qty = qty)
-    strategy.exit("Short TP/SL", "Short", stop = close + stopDist, limit = close - stopDist * tpRMultiple)
+    if not useChandelier
+        strategy.exit("Short TP/SL", "Short", stop = close + stopDist, limit = close - stopDist * tpRMultiple)
 
-// Trailing über Supertrend: Ausstieg bei Trendwechsel
-if useTrailing
+// Chandelier-Trailing: Stop = Extremkurs seit Entry ∓ chandMult × ATR, nur ratchetend
+var float hhSinceEntry = na
+var float llSinceEntry = na
+var float trailStop    = na
+if useChandelier
+    if strategy.position_size > 0
+        if strategy.position_size[1] <= 0
+            hhSinceEntry := high
+            trailStop    := strategy.position_avg_price - atr * stopMult
+        else
+            hhSinceEntry := math.max(hhSinceEntry, high)
+        trailStop := math.max(trailStop, hhSinceEntry - atr * chandMult)
+        strategy.exit("Long Trail", "Long", stop = trailStop)
+    else if strategy.position_size < 0
+        if strategy.position_size[1] >= 0
+            llSinceEntry := low
+            trailStop    := strategy.position_avg_price + atr * stopMult
+        else
+            llSinceEntry := math.min(llSinceEntry, low)
+        trailStop := math.min(trailStop, llSinceEntry + atr * chandMult)
+        strategy.exit("Short Trail", "Short", stop = trailStop)
+    else
+        hhSinceEntry := na
+        llSinceEntry := na
+        trailStop    := na
+
+// Supertrend-Flip-Exit (nur im Modus 'Fester TP/SL')
+if useTrailing and not useChandelier
     if strategy.position_size > 0 and stDir > 0
         strategy.close("Long", comment = "Supertrend-Flip")
     if strategy.position_size < 0 and stDir < 0
@@ -334,4 +367,5 @@ plotshape(tlBounceShort, "Trendlinien-Bounce Short", shape.square, location.abov
 plotshape(useCandles and bullPattern, "Bull-Muster", shape.circle, location.belowbar, color.new(color.green, 60), size = size.tiny)
 plotshape(useCandles and bearPattern, "Bär-Muster",  shape.circle, location.abovebar, color.new(color.red,   60), size = size.tiny)
 
+plot(useChandelier and strategy.position_size != 0 ? trailStop : na, "Chandelier-Stop", color = color.new(color.red, 0), style = plot.style_linebr, linewidth = 2)
 bgcolor(bullTrend ? color.new(color.green, 95) : bearTrend ? color.new(color.red, 95) : na)

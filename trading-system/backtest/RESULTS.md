@@ -101,5 +101,41 @@ der Vorteil des Systems ist der drastisch kleinere Drawdown, nicht die Rendite.
 Standard-Einstellungen des Pine Scripts wurden entsprechend angepasst:
 Shorts aus, Entry-Typen einzeln schaltbar, Empfehlung 4h.
 
+---
+
+# Exit-Studie (Update 2)
+
+Vier Exit-Varianten, Walk-Forward (long-only, 4h, Entry A+B+C):
+
+| Markt | Exit | IS PF | OOS PF | Gesamt 5J | Max-DD |
+|---|---|---|---|---|---|
+| BTC | Fester TP/SL + ST-Flip (alt) | 1,19 | 1,19 | +10,2 % | −9,1 % |
+| BTC | Break-Even nach 1R | 1,68 | 0,97 ❌ | +9,6 % | −9,8 % |
+| BTC | Supertrend-Trailing | 1,93 | 1,49 ✅ | +32,9 % | −10,6 % |
+| BTC | **Chandelier (HH − 3×ATR)** | **2,62** | **1,45 ✅** | **+41,1 %** | **−9,7 %** |
+| Gold | Fester TP/SL + ST-Flip (alt) | 1,19 | 1,17 | +8,4 % | −9,0 % |
+| Gold | Break-Even nach 1R | 1,12 | 1,29 | +8,0 % | −8,0 % |
+| Gold | Supertrend-Trailing | 1,70 | 1,26 ✅ | +18,1 % | −9,9 % |
+| Gold | **Chandelier (HH − 3×ATR)** | **2,07** | **1,39 ✅** | **+28,7 %** | **−10,0 %** |
+
+**Befund:** Beide Trailing-Varianten schlagen den festen TP/SL in beiden Hälften
+auf beiden Märkten — ein robustes Muster („Gewinner laufen lassen"), kein
+Einzelfall-Fit. Chandelier (Stop = Höchstkurs seit Entry − 3×ATR, kein fester TP,
+kein Flip-Exit) ist der Gewinner und jetzt Standard im Pine Script.
+
+## Stand nach allen Verbesserungen (validierte Konfiguration)
+
+Long-only, 4h, Entry A+B+C, Chandelier-Exit, 1 % Risiko/Trade:
+
+| | BTC | Gold |
+|---|---|---|
+| Gesamtrendite 5 Jahre | **+41,1 %** (~7 %/Jahr) | **+28,7 %** (~5 %/Jahr) |
+| Max. Drawdown | −9,7 % | −10,0 % |
+| Out-of-Sample Profit Factor | 1,45 | 1,39 |
+
+Zum Vergleich Startpunkt (v2, fester TP/SL, mit Shorts): BTC +12 %, Gold −19 %.
+Die Out-of-Sample-PFs (1,39–1,45) sind die realistischere Erwartung als die
+In-Sample-Werte (2,0–2,6) — mit Live-Ergebnissen eher am unteren Rand rechnen.
+
 *Reproduzierbar via `python3 backtest.py <csv> BTC|GOLD` mit auf 4h/1D
 resampelten OHLCV-Daten.*

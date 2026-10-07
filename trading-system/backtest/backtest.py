@@ -86,7 +86,14 @@ def supertrend(df: pd.DataFrame, factor: float, n: int):
 
 # ---------------------------------------------------------------- Backtest
 def backtest(df: pd.DataFrame, preset: str, label: str,
-             entry_types=("A", "B", "C"), allow_shorts=None, quiet=False):
+             entry_types=("A", "B", "C"), allow_shorts=None, quiet=False,
+             exit_mode="fixed"):
+    """exit_mode:
+    fixed      — 2-ATR-Stop + R-Multiple-TP + Supertrend-Flip (v2-Standard)
+    st_trail   — Initial-Stop, dann Stop ratchet auf Supertrend-Linie; kein TP
+    chandelier — Initial-Stop, dann Trail: Höchstkurs seit Entry − 3 ATR; kein TP, kein Flip
+    breakeven  — wie fixed, zusätzlich Stop auf Einstand nach +1R
+    """
     allow_shorts = ALLOW_SHORTS if allow_shorts is None else allow_shorts
     st_factor, stop_mult, tp_r = PRESETS[preset]
     df = df.copy()
@@ -96,12 +103,13 @@ def backtest(df: pd.DataFrame, preset: str, label: str,
     df["atr"] = atr(df, ATR_LEN)
     df["rsi"] = rsi(df.Close, RSI_LEN)
     df["vol_sma"] = df.Volume.rolling(20).mean()
-    _, df["st_dir"] = supertrend(df, st_factor, ST_ATR_LEN)
+    df["st_line"], df["st_dir"] = supertrend(df, st_factor, ST_ATR_LEN)
 
     o, h, l, c = (df[k].to_numpy() for k in ("Open", "High", "Low", "Close"))
     vol, volsma = df.Volume.to_numpy(), df.vol_sma.to_numpy()
     emaf, emas, emam = df.ema_f.to_numpy(), df.ema_s.to_numpy(), df.ema_m.to_numpy()
     a, r, stdir = df.atr.to_numpy(), df.rsi.to_numpy(), df.st_dir.to_numpy()
+    stline = df.st_line.to_numpy()
     n = len(df)
 
     # Zustand wie im Pine-Script
@@ -128,24 +136,44 @@ def backtest(df: pd.DataFrame, preset: str, label: str,
 
         # ---- Offene Position managen (heutige Bar)
         if pos is not None:
+            d = pos["dir"]
+            # Trailing-Stop-Update auf Basis der Daten bis Bar i-1 (kein Lookahead)
+            if exit_mode == "st_trail":
+                if d == 1 and stdir[i - 1] == -1 and not math.isnan(stline[i - 1]):
+                    pos["stop"] = max(pos["stop"], stline[i - 1])
+                elif d == -1 and stdir[i - 1] == 1 and not math.isnan(stline[i - 1]):
+                    pos["stop"] = min(pos["stop"], stline[i - 1])
+            elif exit_mode == "chandelier":
+                if d == 1:
+                    pos["stop"] = max(pos["stop"], pos["hh"] - 3 * a[i - 1])
+                else:
+                    pos["stop"] = min(pos["stop"], pos["ll"] + 3 * a[i - 1])
+            elif exit_mode == "breakeven":
+                if d == 1 and pos["hh"] >= pos["entry"] + pos["r"]:
+                    pos["stop"] = max(pos["stop"], pos["entry"])
+                elif d == -1 and pos["ll"] <= pos["entry"] - pos["r"]:
+                    pos["stop"] = min(pos["stop"], pos["entry"])
+
+            use_tp = exit_mode in ("fixed", "breakeven")
+            use_flip = exit_mode in ("fixed", "breakeven", "st_trail")
             exit_px, reason = None, None
-            if pos["dir"] == 1:
+            if d == 1:
                 if o[i] <= pos["stop"]:
                     exit_px, reason = o[i], "gap-stop"
                 elif l[i] <= pos["stop"]:
                     exit_px, reason = pos["stop"], "stop"
-                elif h[i] >= pos["tp"]:
-                    exit_px, reason = max(pos["tp"], o[i]) if o[i] > pos["tp"] else pos["tp"], "tp"
-                elif stdir[i] == 1:
+                elif use_tp and h[i] >= pos["tp"]:
+                    exit_px, reason = (o[i] if o[i] > pos["tp"] else pos["tp"]), "tp"
+                elif use_flip and stdir[i] == 1:
                     exit_px, reason = c[i], "st-flip"
             else:
                 if o[i] >= pos["stop"]:
                     exit_px, reason = o[i], "gap-stop"
                 elif h[i] >= pos["stop"]:
                     exit_px, reason = pos["stop"], "stop"
-                elif l[i] <= pos["tp"]:
-                    exit_px, reason = min(pos["tp"], o[i]) if o[i] < pos["tp"] else pos["tp"], "tp"
-                elif stdir[i] == -1:
+                elif use_tp and l[i] <= pos["tp"]:
+                    exit_px, reason = (o[i] if o[i] < pos["tp"] else pos["tp"]), "tp"
+                elif use_flip and stdir[i] == -1:
                     exit_px, reason = c[i], "st-flip"
             if exit_px is not None:
                 pnl = (exit_px - pos["entry"]) * pos["qty"] * pos["dir"]
@@ -156,6 +184,9 @@ def backtest(df: pd.DataFrame, preset: str, label: str,
                                "bars": i - pos["entry_bar"],
                                "date": df.index[pos["entry_bar"]]})
                 pos = None
+            else:
+                pos["hh"] = max(pos["hh"], h[i])
+                pos["ll"] = min(pos["ll"], l[i])
 
         # ---- Gestern signalisierter Entry → Fill zum heutigen Open
         if pending is not None and pos is None:
@@ -166,7 +197,8 @@ def backtest(df: pd.DataFrame, preset: str, label: str,
             qty = min(risk_qty, cap_qty)
             pos = {"dir": d, "qty": qty, "entry": entry,
                    "stop": entry - d * stop_dist, "tp": entry + d * stop_dist * tp_r,
-                   "entry_bar": i, "etype": etype}
+                   "entry_bar": i, "etype": etype,
+                   "r": stop_dist, "hh": max(entry, h[i]), "ll": min(entry, l[i])}
         pending = None
 
         # ---- Mark-to-Market-Equity für Drawdown
